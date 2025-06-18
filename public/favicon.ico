@@ -1,0 +1,2 @@
+# No Windows PowerShell, crie um arquivo vazio:
+New-Item -Path "public/favicon.ico" -ItemType File -Force
