@@ -4,7 +4,7 @@ import { getSyncService } from '@/lib/integrations/sync-service'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { integrationId, companyId } = await req.json()
 
     // Get current user

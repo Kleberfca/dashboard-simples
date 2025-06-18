@@ -4,6 +4,7 @@ export interface Company {
   name: string;
   slug: string;
   settings: Record<string, any>;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

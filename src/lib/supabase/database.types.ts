@@ -15,6 +15,7 @@ export interface Database {
           name: string
           slug: string
           settings: Json
+          is_active: boolean
           created_at: string
           updated_at: string
         }
@@ -23,6 +24,7 @@ export interface Database {
           name: string
           slug: string
           settings?: Json
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -31,6 +33,7 @@ export interface Database {
           name?: string
           slug?: string
           settings?: Json
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }

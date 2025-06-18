@@ -147,7 +147,8 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         chartPoints.push({
-          date: date.toLocaleDateString('pt-BR', { day: '2d', month: 'short' }),
+          /*date: date.toLocaleDateString('pt-BR', { day: '2d', month: 'short' }),*/
+          date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
           cpc: Math.floor(Math.random() * 10) + 8,
           leads: Math.floor(Math.random() * 10) + 5,
         });

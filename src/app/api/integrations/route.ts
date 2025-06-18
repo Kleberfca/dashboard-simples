@@ -5,7 +5,7 @@ import { encrypt } from '@/lib/crypto/encryption'
 // GET - List integrations
 export async function GET() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -45,7 +45,7 @@ export async function GET() {
 // POST - Create integration
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { platform, credentials, name } = await req.json()
 
     // Validate input

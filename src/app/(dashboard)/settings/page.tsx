@@ -45,7 +45,8 @@ export default function SettingsPage() {
 
       if (userData) {
         setFormData({
-          companyName: userData.company?.name || '',
+          /*companyName: userData.company?.name || '',*/
+          companyName: userData.company?.[0]?.name || '',
           userName: userData.name || '',
           email: userData.email || '',
         })

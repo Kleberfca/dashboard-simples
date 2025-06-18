@@ -24,17 +24,13 @@ const syncFunctions: Record<PlatformType, (config: IntegrationConfig, credential
 };
 
 export class SyncService {
-  private supabase: ReturnType<typeof createClient>;
-
-  constructor() {
-    this.supabase = createClient();
-  }
-
   /**
    * Sync all active integrations for a company
    */
   async syncCompanyIntegrations(companyId: string): Promise<void> {
-    const { data: integrations, error } = await this.supabase
+    const supabase = await createClient();
+    
+    const { data: integrations, error } = await supabase
       .from('integration_configs')
       .select('*')
       .eq('company_id', companyId)
@@ -42,6 +38,11 @@ export class SyncService {
 
     if (error) {
       console.error('Error fetching integrations:', error);
+      return;
+    }
+
+    if (!integrations || integrations.length === 0) {
+      console.log(`No active integrations found for company ${companyId}`);
       return;
     }
 
@@ -56,7 +57,7 @@ export class SyncService {
   /**
    * Sync a single integration
    */
-  async syncIntegration(integration: IntegrationConfig): Promise<void> {
+  async syncIntegration(integration: IntegrationConfig & { credentials_encrypted: string }): Promise<void> {
     const syncLogId = await this.createSyncLog(integration.id);
 
     try {
@@ -97,7 +98,9 @@ export class SyncService {
    * Create a new sync log entry
    */
   private async createSyncLog(integrationConfigId: string): Promise<string> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
       .from('sync_logs')
       .insert({
         integration_config_id: integrationConfigId,
@@ -119,7 +122,9 @@ export class SyncService {
     recordsProcessed: number,
     errorMessage?: string
   ): Promise<void> {
-    await this.supabase
+    const supabase = await createClient();
+    
+    await supabase
       .from('sync_logs')
       .update({
         completed_at: new Date().toISOString(),
@@ -138,6 +143,8 @@ export class SyncService {
     status: 'success' | 'failed' | 'in_progress',
     error?: string
   ): Promise<void> {
+    const supabase = await createClient();
+    
     const updates: any = {
       last_sync_status: status,
       last_sync_at: new Date().toISOString(),
@@ -149,7 +156,7 @@ export class SyncService {
       updates.last_sync_error = null;
     }
 
-    await this.supabase
+    await supabase
       .from('integration_configs')
       .update(updates)
       .eq('id', integrationId);
@@ -165,11 +172,13 @@ export class SyncService {
     date: string,
     metrics: Partial<DailyMetrics>
   ): Promise<void> {
+    const supabase = await createClient();
+    
     // Calculate derived metrics
     const calculatedMetrics = this.calculateMetrics(metrics);
 
     // Upsert metrics data
-    const { error } = await this.supabase
+    const { error } = await supabase
       .from('daily_metrics')
       .upsert({
         company_id: companyId,

@@ -10,6 +10,10 @@ import { getSyncService } from '@/lib/integrations/sync-service';
 //   }]
 // }
 
+interface Company {
+  id: string;
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Verify cron secret (for Vercel Cron)
@@ -18,7 +22,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const syncService = getSyncService();
 
     // Get all active companies
@@ -32,24 +36,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
     }
 
+    if (!companies || companies.length === 0) {
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        errors: 0,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Process companies in batches to avoid timeout
     const batchSize = 10;
-    const batches = [];
+    const batches: Company[][] = [];
     
     for (let i = 0; i < companies.length; i += batchSize) {
       batches.push(companies.slice(i, i + batchSize));
     }
 
     let totalProcessed = 0;
-    const errors = [];
+    const errors: Array<{ companyId: string; error: string }> = [];
 
     for (const batch of batches) {
-      const syncPromises = batch.map(company => 
+      const syncPromises = batch.map((company: Company) => 
         syncService.syncCompanyIntegrations(company.id)
           .then(() => {
             totalProcessed++;
           })
-          .catch(error => {
+          .catch((error: Error) => {
             errors.push({
               companyId: company.id,
               error: error.message
@@ -95,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     if (integrationId) {
       // Sync specific integration
-      const supabase = createClient();
+      const supabase = await createClient();
       const { data: integration, error } = await supabase
         .from('integration_configs')
         .select('*')

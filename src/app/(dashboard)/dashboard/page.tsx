@@ -3,7 +3,7 @@ import DashboardView from '@/components/dashboard/DashboardView'
 import { redirect } from 'next/navigation'
 
 async function getCompanyId() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

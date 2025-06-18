@@ -67,7 +67,8 @@ export async function syncAnalyticsData(
  * Generate mock Analytics data
  */
 function generateMockAnalyticsData(companyId: string) {
-  const data = [];
+  /*const data = [];*/
+  const data: any[] = [];
   const sources = ['google', 'facebook', 'instagram', 'tiktok', 'direct', 'organic'];
   
   // Generate 7 days of data
