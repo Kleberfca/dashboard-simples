@@ -82,7 +82,7 @@ export default async function HomePage() {
 
           {/* Trusted by */}
           <div className="mt-12">
-            <p className="text-sm text-gray-400 mb-4">Para a sua empresa</p>
+            <p className="text-sm text-gray-400 mb-4">Para sua empresa</p>
             <div className="flex justify-center items-center space-x-8 opacity-50">
               <div className="text-white">🏢 Tech Corp</div>
               <div className="text-white">🚀 StartupX</div>
