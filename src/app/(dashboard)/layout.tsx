@@ -44,7 +44,7 @@ export default async function DashboardLayout({
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center px-6">
-            <h1 className="text-xl font-bold text-white">Marketing Dashboard</h1>
+            <h1 className="text-xl font-bold text-white">Dashboard Tryum</h1>
           </div>
 
           {/* Navigation */}
