@@ -197,7 +197,7 @@ export default async function HomePage() {
                   href="/register"
                   className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-xl text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-2xl"
                 >
-                  Criar Conta Grátis
+                  Cadastre-se
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
