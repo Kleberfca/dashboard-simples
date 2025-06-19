@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Settings, Trash2, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Plus, Settings, Trash2, RefreshCw, CheckCircle, XCircle, Clock, Zap } from 'lucide-react'
 import IntegrationConfig from '@/components/integrations/IntegrationConfig'
+import Loading from '@/components/ui/Loading'
 import type { IntegrationConfig as IntegrationType, PlatformType } from '@/types'
 
 const platformIcons = {
@@ -19,6 +20,14 @@ const platformNames = {
   instagram_ads: 'Instagram Ads',
   tiktok_ads: 'TikTok Ads',
   analytics: 'Google Analytics'
+}
+
+const platformColors = {
+  google_ads: 'from-blue-500 to-blue-600',
+  facebook_ads: 'from-blue-600 to-indigo-600',
+  instagram_ads: 'from-pink-500 to-purple-600',
+  tiktok_ads: 'from-gray-800 to-black',
+  analytics: 'from-orange-500 to-red-600'
 }
 
 export default function IntegrationsPage() {
@@ -80,7 +89,6 @@ export default function IntegrationsPage() {
         body: JSON.stringify({ integrationId })
       })
       
-      // Refresh integrations to show updated status
       await fetchIntegrations()
     } catch (error) {
       console.error('Error syncing:', error)
@@ -116,76 +124,74 @@ export default function IntegrationsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <Loading fullScreen text="Carregando integrações..." />
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Integrações</h1>
-        <p className="mt-1 text-sm text-gray-500">
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Integrações</h1>
+        <p className="mt-2 text-gray-600">
           Conecte suas plataformas de marketing para sincronizar dados automaticamente
         </p>
       </div>
 
       {/* Active Integrations */}
       {integrations.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Integrações Ativas</h2>
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <ul className="divide-y divide-gray-200">
-              {integrations.map((integration) => (
-                <li key={integration.id} className="p-6">
-                  <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Integrações Ativas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {integrations.map((integration) => (
+              <div key={integration.id} className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+                <div className="relative bg-white rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
-                      <span className="text-2xl mr-3">
+                      <span className="text-3xl mr-3">
                         {platformIcons[integration.platform]}
                       </span>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">
+                        <h3 className="font-semibold text-gray-900">
                           {integration.name}
                         </h3>
                         <p className="text-sm text-gray-500">
                           {integration.last_sync_at 
-                            ? `Última sincronização: ${new Date(integration.last_sync_at).toLocaleString('pt-BR')}`
+                            ? `Sincronizado ${new Date(integration.last_sync_at).toLocaleString('pt-BR')}`
                             : 'Nunca sincronizado'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(integration.last_sync_status)}
-                      <button
-                        onClick={() => handleSync(integration.id)}
-                        disabled={syncing === integration.id}
-                        className="p-2 text-gray-400 hover:text-blue-600 disabled:opacity-50"
-                        title="Sincronizar agora"
-                      >
-                        <RefreshCw className={`h-5 w-5 ${syncing === integration.id ? 'animate-spin' : ''}`} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(integration.id)}
-                        className="p-2 text-gray-400 hover:text-red-600"
-                        title="Remover integração"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </div>
+                    {getStatusIcon(integration.last_sync_status)}
                   </div>
-                </li>
-              ))}
-            </ul>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSync(integration.id)}
+                      disabled={syncing === integration.id}
+                      className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 flex items-center justify-center"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${syncing === integration.id ? 'animate-spin' : ''}`} />
+                      Sincronizar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(integration.id)}
+                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Add New Integration */}
       <div>
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Adicionar Nova Integração</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Adicionar Nova Integração</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(platformNames).map(([platform, name]) => {
             const isConnected = integrations.some(i => i.platform === platform)
             return (
@@ -193,22 +199,29 @@ export default function IntegrationsPage() {
                 key={platform}
                 onClick={() => !isConnected && handleAddIntegration(platform as PlatformType)}
                 disabled={isConnected}
-                className={`relative rounded-lg border p-6 text-left hover:border-gray-400 ${
-                  isConnected ? 'border-gray-200 bg-gray-50 cursor-not-allowed' : 'border-gray-300 bg-white'
+                className={`group relative rounded-2xl p-6 text-left transition-all ${
+                  isConnected 
+                    ? 'bg-gray-100 cursor-not-allowed opacity-60' 
+                    : 'bg-white hover:shadow-xl hover:-translate-y-1'
                 }`}
               >
-                <div className="flex items-center">
-                  <span className="text-3xl mr-3">{platformIcons[platform as PlatformType]}</span>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">{name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {isConnected ? 'Conectado' : 'Clique para conectar'}
-                    </p>
+                <div className="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-20 transition duration-300 rounded-2xl blur"
+                  style={{
+                    background: `linear-gradient(to right, ${platformColors[platform as PlatformType].split(' ')[1]}, ${platformColors[platform as PlatformType].split(' ')[3]})`
+                  }}
+                ></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-4xl">{platformIcons[platform as PlatformType]}</span>
+                    {isConnected && (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    )}
                   </div>
+                  <h3 className="font-semibold text-gray-900">{name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {isConnected ? 'Conectado' : 'Clique para conectar'}
+                  </p>
                 </div>
-                {isConnected && (
-                  <CheckCircle className="absolute top-4 right-4 h-5 w-5 text-green-500" />
-                )}
               </button>
             )
           })}
@@ -217,8 +230,8 @@ export default function IntegrationsPage() {
 
       {/* Configuration Modal */}
       {showConfig && selectedPlatform && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <IntegrationConfig
               platform={selectedPlatform}
               onSave={handleSaveIntegration}

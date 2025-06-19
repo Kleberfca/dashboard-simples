@@ -4,97 +4,106 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cores Tryum */
+    --tryum-dark: #0a0e27;
+    --tryum-blue-dark: #1e3a8a;
+    --tryum-blue: #3b82f6;
+    --tryum-blue-light: #60a5fa;
+    --tryum-gradient: linear-gradient(135deg, #0a0e27 0%, #1e3a8a 50%, #3b82f6 100%);
   }
 
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-gray-50 text-gray-900 antialiased;
   }
 }
 
 @layer components {
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  /* Botão primário Tryum */
+  .btn-tryum {
+    @apply px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+  /* Card com efeito glassmorphism */
+  .card-glass {
+    @apply bg-white/80 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 rounded-full;
+  /* Gradiente de texto */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+  /* Animação de delay */
+  .animation-delay-2000 {
+    animation-delay: 2s;
   }
 
-  /* Loading animation */
-  .loading-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* Chart animations */
-  .chart-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl;
   }
 }
 
-/* Focus styles */
+/* Animações customizadas */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #60a5fa, #a78bfa);
+}
+
+/* Focus styles modernos */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-  border-color: rgb(59, 130, 246);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Form inputs */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-select,
-textarea {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500;
+/* Transições suaves */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
-/* Recharts custom styles */
-.recharts-wrapper {
-  width: 100%;
-  height: 100%;
+/* Sombras modernas */
+.shadow-modern {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
 }
 
-.recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line {
-  stroke: #e5e7eb;
-}
-
-.recharts-text {
-  fill: #4b5563;
-  font-size: 0.75rem;
-}
-
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
-  }
-  
-  body {
-    background-color: white;
-  }
+.shadow-modern-lg {
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
 }

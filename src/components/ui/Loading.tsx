@@ -15,16 +15,19 @@ export default function Loading({ size = 'md', text, fullScreen = false }: Loadi
 
   const content = (
     <div className="flex flex-col items-center justify-center">
-      <Loader2 className={`animate-spin text-blue-600 ${sizeClasses[size]}`} />
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
+        <Loader2 className={`relative animate-spin text-blue-600 ${sizeClasses[size]}`} />
+      </div>
       {text && (
-        <p className="mt-4 text-sm text-gray-500">{text}</p>
+        <p className="mt-4 text-sm text-gray-600 font-medium">{text}</p>
       )}
     </div>
   )
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
         {content}
       </div>
     )

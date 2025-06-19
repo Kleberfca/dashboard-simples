@@ -1,272 +1,270 @@
-import { useState, useEffect } from 'react';
-import { Calendar, TrendingUp, TrendingDown, DollarSign, Users, MousePointer, Eye } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { KPIMetric, DateRange, DashboardFilters } from '@/types';
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Calendar, TrendingUp, DollarSign, Users, MousePointer, Eye, Activity, RefreshCw } from 'lucide-react'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import KPICard from './KPICard'
+import Loading from '@/components/ui/Loading'
 
 interface DashboardViewProps {
-  companyId: string;
+  companyId: string
 }
 
-function KPICard({ metric }: { metric: KPIMetric }) {
-  const isPositiveChange = metric.changeType === 'increase';
-  const Icon = isPositiveChange ? TrendingUp : TrendingDown;
-  
-  const iconMap: Record<string, any> = {
-    'Investimento': DollarSign,
-    'Leads': Users,
-    'Cliques': MousePointer,
-    'Impressões': Eye,
-  };
-  
-  const CardIcon = iconMap[metric.label] || DollarSign;
-  
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{metric.label}</p>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">
-            {metric.prefix}{metric.value}{metric.suffix}
-          </p>
-          {metric.change !== undefined && (
-            <div className="mt-2 flex items-center text-sm">
-              <Icon className={`h-4 w-4 ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`} />
-              <span className={`ml-1 ${isPositiveChange ? 'text-green-600' : 'text-red-600'}`}>
-                {Math.abs(metric.change)}%
-              </span>
-              <span className="ml-1 text-gray-500">vs período anterior</span>
-            </div>
-          )}
-        </div>
-        <div className="ml-4">
-          <CardIcon className="h-8 w-8 text-gray-400" />
-        </div>
-      </div>
-    </div>
-  );
-}
+const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444']
 
 export default function DashboardView({ companyId }: DashboardViewProps) {
-  const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<KPIMetric[]>([]);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [filters, setFilters] = useState<DashboardFilters>({
-    dateRange: {
-      start: new Date(new Date().setDate(new Date().getDate() - 30)),
-      end: new Date(),
-    },
-  });
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [metrics, setMetrics] = useState<any[]>([])
+  const [chartData, setChartData] = useState<any[]>([])
+  const [platformData, setPlatformData] = useState<any[]>([])
+  const [dateRange, setDateRange] = useState('30')
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [companyId, filters]);
+    fetchDashboardData()
+  }, [companyId, dateRange])
 
   const fetchDashboardData = async () => {
-    setLoading(true);
+    if (!loading) setRefreshing(true)
+    
     try {
       const response = await fetch('/api/metrics/dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId, filters }),
-      });
+        body: JSON.stringify({ 
+          companyId, 
+          filters: {
+            dateRange: {
+              start: new Date(new Date().setDate(new Date().getDate() - parseInt(dateRange))),
+              end: new Date()
+            }
+          }
+        }),
+      })
 
-      const data = await response.json();
+      const data = await response.json()
       
       // Mock data for demonstration
-      setMetrics([
+      const mockMetrics = [
         { 
-          label: 'Investimento', 
-          value: 'R$ 54.898,50', 
-          change: 200.0, 
+          title: 'Investimento Total',
+          value: 54898.50,
+          change: 12.5,
           changeType: 'increase',
-          prefix: '',
-          suffix: ''
+          icon: <DollarSign className="h-5 w-5" />,
+          prefix: 'R$ ',
+          color: 'blue'
         },
         { 
-          label: 'Leads', 
-          value: '186', 
-          change: 200.0, 
+          title: 'Leads Gerados',
+          value: 186,
+          change: 23.4,
           changeType: 'increase',
-          prefix: '',
-          suffix: ''
+          icon: <Users className="h-5 w-5" />,
+          color: 'purple'
         },
         { 
-          label: 'Custo por Lead', 
-          value: 'R$ 295,15', 
-          change: 48.1, 
+          title: 'Taxa de Conversão',
+          value: '3.2%',
+          change: 5.7,
           changeType: 'increase',
-          prefix: '',
-          suffix: ''
+          icon: <TrendingUp className="h-5 w-5" />,
+          color: 'green'
         },
         { 
-          label: 'Receita', 
-          value: 'R$ 65.000,00', 
-          change: 0, 
-          changeType: 'increase',
-          prefix: '',
-          suffix: ''
-        },
-        { 
-          label: 'CTR', 
-          value: '0,44%', 
-          change: 17.5, 
-          changeType: 'increase',
-          prefix: '',
-          suffix: ''
-        },
-        { 
-          label: 'CPM', 
-          value: 'R$ 53,06', 
-          change: -24.6, 
+          title: 'ROAS Médio',
+          value: '4.8x',
+          change: -2.1,
           changeType: 'decrease',
-          prefix: '',
-          suffix: ''
-        },
-        { 
-          label: 'Cliques no link', 
-          value: '4.565', 
-          change: 592.7, 
-          changeType: 'increase',
-          prefix: '',
-          suffix: ''
-        },
-        { 
-          label: 'ROAS', 
-          value: '1,2', 
-          change: 0, 
-          changeType: 'increase',
-          prefix: '',
-          suffix: ''
-        },
-      ]);
-
+          icon: <Activity className="h-5 w-5" />,
+          color: 'orange'
+        }
+      ]
+      
+      setMetrics(mockMetrics)
+      
       // Mock chart data
-      const dates = [];
-      const chartPoints = [];
-      for (let i = 14; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        chartPoints.push({
-          /*date: date.toLocaleDateString('pt-BR', { day: '2d', month: 'short' }),*/
+      const dates = []
+      for (let i = parseInt(dateRange) - 1; i >= 0; i--) {
+        const date = new Date()
+        date.setDate(date.getDate() - i)
+        dates.push({
           date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-          cpc: Math.floor(Math.random() * 10) + 8,
-          leads: Math.floor(Math.random() * 10) + 5,
-        });
+          investimento: Math.floor(Math.random() * 2000) + 1000,
+          leads: Math.floor(Math.random() * 20) + 5,
+          conversoes: Math.floor(Math.random() * 10) + 2
+        })
       }
-      setChartData(chartPoints);
+      setChartData(dates)
+      
+      // Mock platform data
+      setPlatformData([
+        { name: 'Google Ads', value: 45000, leads: 120 },
+        { name: 'Facebook Ads', value: 35000, leads: 85 },
+        { name: 'Instagram Ads', value: 25000, leads: 65 },
+        { name: 'TikTok Ads', value: 15000, leads: 40 }
+      ])
+      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching dashboard data:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
+      setRefreshing(false)
     }
-  };
+  }
 
-  const handleDateRangeChange = (start: Date, end: Date) => {
-    setFilters(prev => ({
-      ...prev,
-      dateRange: { start, end },
-    }));
-  };
+  const handleRefresh = () => {
+    fetchDashboardData()
+  }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <Loading fullScreen text="Carregando dashboard..." />
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with Date Filter */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <div className="flex items-center space-x-4">
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <Calendar className="h-4 w-4 mr-2" />
-            {filters.dateRange.start.toLocaleDateString('pt-BR')} - {filters.dateRange.end.toLocaleDateString('pt-BR')}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Visão geral do desempenho das suas campanhas</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <select 
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+          
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+          >
+            <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metrics.map((metric, index) => (
-          <KPICard key={index} metric={metric} />
+          <KPICard key={index} {...metric} />
         ))}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CPC Evolution Chart */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Evolução do CPC</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="cpc" 
-                stroke="#3B82F6" 
-                strokeWidth={2}
-                dot={{ fill: '#3B82F6' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Chart - 2 columns */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Evolução de Métricas</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorInvestimento" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="investimento" 
+                  stroke="#3B82F6" 
+                  fillOpacity={1} 
+                  fill="url(#colorInvestimento)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="leads" 
+                  stroke="#8B5CF6" 
+                  fillOpacity={1} 
+                  fill="url(#colorLeads)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        {/* Leads Evolution Chart */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Leads Gerados</h3>
+        {/* Platform Performance */}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance por Plataforma</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
+            <PieChart>
+              <Pie
+                data={platformData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {platformData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
               <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="leads" 
-                stroke="#10B981" 
-                strokeWidth={2}
-                dot={{ fill: '#10B981' }}
-              />
-            </LineChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Sincronizações Recentes</h3>
-        </div>
-        <div className="px-6 py-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Google Ads</p>
-                <p className="text-sm text-gray-500">Última sincronização há 5 minutos</p>
-              </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Sucesso
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Facebook Ads</p>
-                <p className="text-sm text-gray-500">Última sincronização há 1 hora</p>
-              </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Sucesso
-              </span>
-            </div>
-          </div>
+      {/* Platform Details */}
+      <div className="bg-white rounded-2xl shadow-xl p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Detalhamento por Plataforma</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Plataforma</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Investimento</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Leads</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">CPL</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">ROAS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {platformData.map((platform, index) => (
+                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-4 px-4">
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-3`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      {platform.name}
+                    </div>
+                  </td>
+                  <td className="text-right py-4 px-4 font-medium">R$ {platform.value.toLocaleString('pt-BR')}</td>
+                  <td className="text-right py-4 px-4">{platform.leads}</td>
+                  <td className="text-right py-4 px-4">R$ {(platform.value / platform.leads).toFixed(2)}</td>
+                  <td className="text-right py-4 px-4 text-green-600 font-medium">
+                    {(Math.random() * 3 + 2).toFixed(1)}x
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  );
+  )
 }
