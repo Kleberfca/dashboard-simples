@@ -132,16 +132,16 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 -m-6 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 -m-4 sm:-m-6 p-4 sm:p-6">
       <div className="absolute inset-0 opacity-10" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
       
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 space-y-6 sm:space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-4xl font-bold text-white">Integrações</h1>
-          <p className="mt-2 text-gray-300">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Integrações</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-300">
             Conecte suas plataformas de marketing para sincronizar dados automaticamente
           </p>
         </div>
@@ -149,22 +149,22 @@ export default function IntegrationsPage() {
         {/* Active Integrations */}
         {integrations.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-white mb-4">Integrações Ativas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4">Integrações Ativas</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {integrations.map((integration) => (
                 <div key={integration.id} className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
-                  <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-6 border border-white border-opacity-20">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                  <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center">
-                        <span className="text-3xl mr-3">
+                        <span className="text-2xl sm:text-3xl mr-2 sm:mr-3">
                           {platformIcons[integration.platform]}
                         </span>
                         <div>
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-white text-sm sm:text-base">
                             {integration.name}
                           </h3>
-                          <p className="text-sm text-gray-300">
+                          <p className="text-xs sm:text-sm text-gray-300">
                             {integration.last_sync_at 
                               ? `Última sync: ${new Date(integration.last_sync_at).toLocaleDateString('pt-BR')}`
                               : 'Nunca sincronizado'}
@@ -178,9 +178,9 @@ export default function IntegrationsPage() {
                       <button
                         onClick={() => handleSync(integration.id)}
                         disabled={syncing === integration.id}
-                        className="flex items-center px-3 py-1 bg-blue-500 bg-opacity-20 hover:bg-opacity-30 text-blue-300 rounded-lg transition-all text-sm"
+                        className="flex items-center px-2 sm:px-3 py-1 bg-blue-500 bg-opacity-20 hover:bg-opacity-30 text-blue-300 rounded-lg transition-all text-xs sm:text-sm"
                       >
-                        <RefreshCw className={`h-4 w-4 mr-1 ${syncing === integration.id ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 ${syncing === integration.id ? 'animate-spin' : ''}`} />
                         Sincronizar
                       </button>
                       
@@ -205,8 +205,8 @@ export default function IntegrationsPage() {
 
         {/* Add New Integration */}
         <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Adicionar Nova Integração</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-white mb-4">Adicionar Nova Integração</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {Object.entries(platformNames).map(([platform, name]) => {
               const isConnected = integrations.some(i => i.platform === platform)
               return (
@@ -220,21 +220,21 @@ export default function IntegrationsPage() {
                       : 'hover:scale-105'
                   } transition-all duration-200`}
                 >
-                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${platformColors[platform as PlatformType]} rounded-2xl blur ${
+                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${platformColors[platform as PlatformType]} rounded-xl sm:rounded-2xl blur ${
                     isConnected ? 'opacity-10' : 'opacity-30 group-hover:opacity-50'
                   } transition duration-300`}></div>
                   <div className={`relative ${
                     isConnected 
                       ? 'bg-gray-800 bg-opacity-50' 
                       : 'bg-white bg-opacity-10 hover:bg-opacity-20'
-                  } backdrop-blur-lg rounded-2xl p-6 border border-white border-opacity-20 transition-all`}>
+                  } backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20 transition-all`}>
                     <div className="flex flex-col items-center justify-center h-full">
-                      <span className="text-4xl mb-3">{platformIcons[platform as PlatformType]}</span>
+                      <span className="text-2xl sm:text-4xl mb-2 sm:mb-3">{platformIcons[platform as PlatformType]}</span>
                       {isConnected && (
-                        <CheckCircle className="h-5 w-5 text-green-400 absolute top-2 right-2" />
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 absolute top-1 right-1 sm:top-2 sm:right-2" />
                       )}
-                      <h3 className="font-semibold text-white">{name}</h3>
-                      <p className="text-sm text-gray-300 mt-1">
+                      <h3 className="font-semibold text-white text-xs sm:text-base">{name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1 hidden sm:block">
                         {isConnected ? 'Conectado' : 'Clique para conectar'}
                       </p>
                     </div>
