@@ -29,6 +29,8 @@ yarn-error.log*
 .env*.local
 .env
 .env.example
+.env.production
+.env.development
 
 # vercel
 .vercel
@@ -40,6 +42,7 @@ next-env.d.ts
 # supabase
 /supabase/.branches
 /supabase/.temp
+/supabase/.env
 
 # IDE
 .vscode/
@@ -50,6 +53,7 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+.DS_Store
 
 # Logs
 logs
@@ -60,3 +64,15 @@ pids
 *.pid
 *.seed
 *.pid.lock
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/

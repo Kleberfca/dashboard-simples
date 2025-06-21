@@ -1,3 +1,5 @@
+// src/types/env.d.ts
+
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
@@ -6,26 +8,28 @@ declare global {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: string
       SUPABASE_SERVICE_ROLE_KEY: string
       
-      // Security
+      // Criptografia
       ENCRYPTION_KEY: string
+      
+      // Cron
       CRON_SECRET: string
       
       // App
       NEXT_PUBLIC_APP_URL: string
+      NEXT_PUBLIC_APP_NAME?: string
       
-      // OAuth (optional)
-      GOOGLE_CLIENT_ID?: string
-      GOOGLE_CLIENT_SECRET?: string
+      // APIs Externas (opcionais)
+      GOOGLE_ADS_DEVELOPER_TOKEN?: string
       FACEBOOK_APP_ID?: string
       FACEBOOK_APP_SECRET?: string
+      TIKTOK_APP_ID?: string
+      TIKTOK_APP_SECRET?: string
       
-      // Rate Limiting (optional)
-      RATE_LIMIT_PER_HOUR?: string
-      
-      // Node
+      // Ambiente
       NODE_ENV: 'development' | 'production' | 'test'
     }
   }
 }
 
+// Necessário para que o arquivo seja tratado como um módulo
 export {}

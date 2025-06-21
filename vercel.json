@@ -11,9 +11,26 @@
     },
     "src/app/api/integrations/test/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/sync/manual/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/reports/route.ts": {
+      "maxDuration": 30
     }
   },
   "env": {
     "NEXT_PUBLIC_APP_NAME": "Dashboard Tryum"
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/sync/cron",
+      "headers": [
+        {
+          "key": "x-cron-secret",
+          "value": "CRON_SECRET"
+        }
+      ]
+    }
+  ]
 }

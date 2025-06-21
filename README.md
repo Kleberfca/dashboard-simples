@@ -36,6 +36,13 @@ CRON_SECRET=sua_chave_secreta_cron_aqui
 
 # URL da Aplicação
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# APIs Externas (opcional - para integrações reais)
+GOOGLE_ADS_DEVELOPER_TOKEN=
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=
+TIKTOK_APP_ID=
+TIKTOK_APP_SECRET=
 ```
 
 ### 4. Executar Migrations
@@ -44,6 +51,8 @@ No Supabase Dashboard:
 1. Vá em SQL Editor
 2. Cole o conteúdo de `/supabase/migrations/001_initial_schema.sql`
 3. Execute
+4. Cole o conteúdo de `/supabase/migrations/002_campaigns_update.sql`
+5. Execute
 
 ### 5. Iniciar o Projeto
 
@@ -79,6 +88,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_logs ENABLE ROW LEVEL SECURITY;
 ```
 
 ## 🚀 Deploy na Vercel
@@ -89,17 +99,36 @@ ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;
 4. Deploy!
 
 ### Configurar Cron Jobs na Vercel
-As variáveis de ambiente devem incluir:
-```
-CRON_SECRET=mesma_chave_do_env_local
-```
+1. O arquivo `vercel.json` já está configurado
+2. As variáveis de ambiente devem incluir `CRON_SECRET`
+3. O cron job executará a cada hora automaticamente
 
 ## 📱 Uso do Sistema
 
 1. **Criar Conta**: Acesse `/register`
 2. **Login**: Use suas credenciais em `/login`
-3. **Configurar Integrações**: Vá em Integrações e conecte suas plataformas
-4. **Visualizar Dashboard**: Métricas sincronizadas automaticamente a cada hora
+3. **Dashboard**: Visualize métricas em tempo real
+4. **Integrações**: Configure suas plataformas de marketing
+5. **Campanhas**: Gerencie e acompanhe performance
+6. **Relatórios**: Exporte dados em PDF, Excel ou CSV
+
+## 🎨 Funcionalidades
+
+### ✅ Implementadas
+- Sistema de autenticação completo
+- Dashboard com gráficos interativos
+- Gestão de campanhas (CRUD completo)
+- Sistema de integrações
+- Geração de relatórios
+- Design responsivo
+- Modo escuro elegante
+- Animações e transições suaves
+
+### 🚧 Em Desenvolvimento
+- Sincronização real com APIs externas
+- Exportação de relatórios em PDF
+- Sistema de notificações
+- Webhooks para eventos
 
 ## 🔒 Segurança
 
@@ -107,12 +136,54 @@ CRON_SECRET=mesma_chave_do_env_local
 - Multi-tenancy com RLS no Supabase
 - Autenticação via Supabase Auth
 - HTTPS obrigatório em produção
+- Proteção de rotas com middleware
+
+## 📊 Estrutura do Projeto
+
+```
+src/
+├── app/
+│   ├── (auth)/          # Páginas de autenticação
+│   ├── (dashboard)/     # Páginas do dashboard
+│   ├── api/             # API Routes
+│   └── page.tsx         # Landing page
+├── components/
+│   ├── dashboard/       # Componentes do dashboard
+│   ├── integrations/    # Componentes de integração
+│   ├── layout/          # Componentes de layout
+│   └── ui/              # Componentes de UI
+├── lib/
+│   ├── crypto/          # Criptografia
+│   ├── integrations/    # Lógica de integração
+│   └── supabase/        # Cliente Supabase
+└── types/               # TypeScript types
+```
+
+## 🛠️ Scripts Disponíveis
+
+```bash
+# Desenvolvimento
+npm run dev
+
+# Build para produção
+npm run build
+
+# Iniciar servidor de produção
+npm run start
+
+# Verificar tipos TypeScript
+npm run type:check
+
+# Lint
+npm run lint
+```
 
 ## 📞 Suporte
 
 Para dúvidas ou problemas:
 - Documentação Supabase: https://supabase.com/docs
 - Documentação Next.js: https://nextjs.org/docs
+- Issues do GitHub: [Criar issue](https://github.com/seu-usuario/dashboard-simples/issues)
 
 ## ⚡ Performance
 
@@ -120,3 +191,16 @@ Para dúvidas ou problemas:
 - Sincronização assíncrona
 - Otimização de queries com índices
 - CDN para assets estáticos
+- Lazy loading de componentes
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

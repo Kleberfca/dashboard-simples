@@ -1,144 +1,131 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getSyncService } from '@/lib/integrations/sync-service';
+// src/app/api/sync/cron/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { getSyncService } from '@/lib/integrations/sync-service'
+import { headers } from 'next/headers'
 
-// Vercel Cron configuration (add to vercel.json):
-// {
-//   "crons": [{
-//     "path": "/api/sync/cron",
-//     "schedule": "0 * * * *"  // Every hour
-//   }]
-// }
-
-interface Company {
-  id: string;
-}
+export const maxDuration = 60 // 60 seconds max for Vercel
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify cron secret (for Vercel Cron)
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const supabase = await createClient();
-    const syncService = getSyncService();
-
-    // Get all active companies
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('Error fetching companies:', error);
-      return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
-    }
-
-    if (!companies || companies.length === 0) {
-      return NextResponse.json({
-        success: true,
-        processed: 0,
-        errors: 0,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Process companies in batches to avoid timeout
-    const batchSize = 10;
-    const batches: Company[][] = [];
+    // Verificar cron secret para segurança
+    const headersList = headers()
+    const cronSecret = (await headersList).get('x-cron-secret')
     
+    if (cronSecret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = await createClient()
+    
+    // Buscar todas as empresas ativas
+    const { data: companies, error: companiesError } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('is_active', true)
+
+    if (companiesError || !companies) {
+      console.error('Error fetching companies:', companiesError)
+      return NextResponse.json({ 
+        error: 'Failed to fetch companies',
+        details: companiesError?.message 
+      }, { status: 500 })
+    }
+
+    console.log(`Starting sync for ${companies.length} companies`)
+
+    const syncService = getSyncService()
+    const results = []
+
+    // Processar empresas em paralelo (mas limitado para não sobrecarregar)
+    const batchSize = 5
     for (let i = 0; i < companies.length; i += batchSize) {
-      batches.push(companies.slice(i, i + batchSize));
+      const batch = companies.slice(i, i + batchSize)
+      
+      const batchPromises = batch.map(async (company) => {
+        try {
+          console.log(`Syncing company: ${company.name} (${company.id})`)
+          
+          // Sincronizar integrações da empresa
+          await syncService.syncCompanyIntegrations(company.id)
+          
+          // Registrar sucesso
+          await supabase
+            .from('sync_logs')
+            .insert({
+              company_id: company.id,
+              sync_type: 'cron',
+              status: 'completed',
+              started_at: new Date().toISOString(),
+              completed_at: new Date().toISOString()
+            })
+
+          return {
+            companyId: company.id,
+            companyName: company.name,
+            status: 'success'
+          }
+        } catch (error) {
+          console.error(`Error syncing company ${company.id}:`, error)
+          
+          // Registrar erro
+          await supabase
+            .from('sync_logs')
+            .insert({
+              company_id: company.id,
+              sync_type: 'cron',
+              status: 'failed',
+              started_at: new Date().toISOString(),
+              completed_at: new Date().toISOString(),
+              error_message: error instanceof Error ? error.message : 'Unknown error'
+            })
+
+          return {
+            companyId: company.id,
+            companyName: company.name,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }
+      })
+
+      const batchResults = await Promise.allSettled(batchPromises)
+      results.push(...batchResults.map(r => r.status === 'fulfilled' ? r.value : r.reason))
     }
 
-    let totalProcessed = 0;
-    const errors: Array<{ companyId: string; error: string }> = [];
-
-    for (const batch of batches) {
-      const syncPromises = batch.map((company: Company) => 
-        syncService.syncCompanyIntegrations(company.id)
-          .then(() => {
-            totalProcessed++;
-          })
-          .catch((error: Error) => {
-            errors.push({
-              companyId: company.id,
-              error: error.message
-            });
-          })
-      );
-
-      await Promise.allSettled(syncPromises);
+    // Resumo dos resultados
+    const summary = {
+      total: companies.length,
+      success: results.filter(r => r.status === 'success').length,
+      failed: results.filter(r => r.status === 'error').length,
+      timestamp: new Date().toISOString(),
+      results
     }
 
-    // Log summary
-    console.log(`Sync completed: ${totalProcessed} companies processed, ${errors.length} errors`);
+    console.log('Sync completed:', summary)
 
-    return NextResponse.json({
-      success: true,
-      processed: totalProcessed,
-      errors: errors.length,
-      timestamp: new Date().toISOString()
-    });
-
+    return NextResponse.json(summary)
   } catch (error) {
-    console.error('Cron job error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Cron sync error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
-// Manual sync endpoint
+// POST para teste manual (desenvolvimento)
 export async function POST(req: NextRequest) {
-  try {
-    const { companyId, integrationId } = await req.json();
-
-    if (!companyId) {
-      return NextResponse.json(
-        { error: 'Company ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const syncService = getSyncService();
-
-    if (integrationId) {
-      // Sync specific integration
-      const supabase = await createClient();
-      const { data: integration, error } = await supabase
-        .from('integration_configs')
-        .select('*')
-        .eq('id', integrationId)
-        .eq('company_id', companyId)
-        .single();
-
-      if (error || !integration) {
-        return NextResponse.json(
-          { error: 'Integration not found' },
-          { status: 404 }
-        );
-      }
-
-      await syncService.syncIntegration(integration);
-    } else {
-      // Sync all integrations for company
-      await syncService.syncCompanyIntegrations(companyId);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Sync initiated successfully'
-    });
-
-  } catch (error) {
-    console.error('Manual sync error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate sync' },
-      { status: 500 }
-    );
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Only available in development' }, { status: 403 })
   }
+
+  // Simular requisição do cron job
+  const testReq = new NextRequest(req.url, {
+    headers: {
+      'x-cron-secret': process.env.CRON_SECRET || ''
+    }
+  })
+
+  return GET(testReq)
 }

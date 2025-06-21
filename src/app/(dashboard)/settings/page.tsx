@@ -1,14 +1,30 @@
+// src/app/(dashboard)/settings/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, LogOut, User, Building, Mail, Shield, Bell, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Building, User, Mail, Lock, Bell, Shield, Save, Loader2, Check, X } from 'lucide-react'
+import Loading from '@/components/ui/Loading'
 
 interface UserData {
-  company_name: string
-  name: string
+  id: string
   email: string
+  name: string
+  company_id: string
+  company_name: string
+  role: string
+}
+
+interface Settings {
+  notifications: {
+    email: boolean
+    syncErrors: boolean
+    reports: boolean
+  }
+  security: {
+    twoFactor: boolean
+  }
 }
 
 export default function SettingsPage() {
@@ -16,11 +32,24 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [userData, setUserData] = useState<UserData>({
-    company_name: '',
-    name: '',
-    email: ''
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [settings, setSettings] = useState<Settings>({
+    notifications: {
+      email: true,
+      syncErrors: true,
+      reports: false
+    },
+    security: {
+      twoFactor: false
+    }
   })
+
+  // Form states
+  const [name, setName] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPasswords, setShowPasswords] = useState(false)
 
   useEffect(() => {
     fetchUserData()
@@ -30,62 +59,137 @@ export default function SettingsPage() {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         router.push('/login')
         return
       }
 
-      const { data: userData, error: userError } = await supabase
+      // Get user data with company info
+      const { data: userData, error } = await supabase
         .from('users')
-        .select('name, email, company_id')
+        .select(`
+          *,
+          companies!inner(name)
+        `)
         .eq('id', user.id)
         .single()
 
-      if (userData && userData.company_id) {
-        // Buscar dados da empresa separadamente
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', userData.company_id)
-          .single()
+      if (error || !userData) {
+        console.error('Error fetching user data:', error)
+        return
+      }
 
-        setUserData({
-          company_name: companyData?.name || '',
-          name: userData.name || '',
-          email: userData.email
-        })
+      const formattedData: UserData = {
+        id: userData.id,
+        email: user.email || '',
+        name: userData.name || '',
+        company_id: userData.company_id,
+        company_name: userData.companies?.name || '',
+        role: userData.role
+      }
+
+      setUserData(formattedData)
+      setName(formattedData.name)
+
+      // Load saved settings from company metadata
+      if (userData.companies?.settings) {
+        setSettings(prev => ({
+          ...prev,
+          ...userData.companies.settings
+        }))
       }
     } catch (error) {
-      console.error('Error fetching user data:', error)
+      console.error('Error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSaveProfile = async () => {
     setSaving(true)
     setMessage('')
 
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) return
 
-      const { error } = await supabase
+      // Update user name
+      const { error: userError } = await supabase
         .from('users')
-        .update({ name: userData.name })
-        .eq('id', user.id)
+        .update({ name })
+        .eq('id', userData?.id)
 
-      if (error) {
-        setMessage('Erro ao salvar alterações')
-      } else {
-        setMessage('Alterações salvas com sucesso!')
+      if (userError) {
+        setMessage('Erro ao atualizar perfil')
+        return
+      }
+
+      // Update password if provided
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          setMessage('As senhas não coincidem')
+          return
+        }
+
+        if (newPassword.length < 6) {
+          setMessage('A nova senha deve ter pelo menos 6 caracteres')
+          return
+        }
+
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: newPassword
+        })
+
+        if (passwordError) {
+          setMessage('Erro ao atualizar senha')
+          return
+        }
+
+        // Clear password fields on success
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      }
+
+      setMessage('Alterações salvas com sucesso!')
+
+      // Update local state
+      if (userData) {
+        setUserData({ ...userData, name })
       }
     } catch (error) {
       setMessage('Erro ao salvar alterações')
+    } finally {
+      setSaving(false)
+      setTimeout(() => setMessage(''), 3000)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const supabase = createClient()
+
+      // Save settings to company metadata
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          settings: {
+            ...settings
+          }
+        })
+        .eq('id', userData?.company_id)
+
+      if (error) {
+        setMessage('Erro ao salvar configurações')
+        return
+      }
+
+      setMessage('Configurações salvas com sucesso!')
+    } catch (error) {
+      setMessage('Erro ao salvar configurações')
     } finally {
       setSaving(false)
       setTimeout(() => setMessage(''), 3000)
@@ -115,7 +219,7 @@ export default function SettingsPage() {
       <div className="relative z-10 max-w-4xl mx-auto">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-6 sm:mb-8">Configurações</h1>
 
-        <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
+        <div className="space-y-6">
           {/* Company Information */}
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
@@ -131,7 +235,7 @@ export default function SettingsPage() {
                 </label>
                 <input
                   type="text"
-                  value={userData.company_name}
+                  value={userData?.company_name || ''}
                   disabled
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 cursor-not-allowed text-sm sm:text-base"
                 />
@@ -156,126 +260,207 @@ export default function SettingsPage() {
                   <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
                     Nome
                   </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={userData.name}
-                      onChange={(e) => setUserData({ ...userData, name: e.target.value })}
-                      className="w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 text-sm sm:text-base"
-                      placeholder="Seu nome"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                    <Mail className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     Email
                   </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={userData.email}
-                      disabled
-                      className="w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 cursor-not-allowed text-sm sm:text-base"
-                    />
-                  </div>
-                  <p className="mt-2 text-xs sm:text-sm text-gray-400">
-                    O email não pode ser alterado
-                  </p>
+                  <input
+                    type="email"
+                    value={userData?.email || ''}
+                    disabled
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 cursor-not-allowed text-sm sm:text-base"
+                  />
                 </div>
+
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar Perfil
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Security Section */}
+          {/* Security */}
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-blue-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-orange-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
             <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
               <div className="flex items-center mb-4 sm:mb-6">
-                <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 mr-2 sm:mr-3" />
+                <Lock className="h-5 w-5 sm:h-6 sm:w-6 text-red-400 mr-2 sm:mr-3" />
                 <h2 className="text-lg sm:text-xl font-semibold text-white">Segurança</h2>
               </div>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-white bg-opacity-5 rounded-lg border border-white border-opacity-10">
-                  <div className="flex items-center">
-                    <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 mr-2 sm:mr-3" />
-                    <div>
-                      <p className="text-white font-medium text-sm sm:text-base">Notificações de Segurança</p>
-                      <p className="text-xs sm:text-sm text-gray-400">Receba alertas sobre atividades suspeitas</p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs sm:text-sm text-gray-300">
+                    Mostrar senhas
                   </label>
+                  <button
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    {showPasswords ? <X className="h-5 w-5" /> : <Check className="h-5 w-5" />}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                    Senha Atual
+                  </label>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm sm:text-base"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                    Nova Senha
+                  </label>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm sm:text-base"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2">
+                    Confirmar Nova Senha
+                  </label>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm sm:text-base"
+                    placeholder="••••••••"
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {message && (
-            <div className={`p-3 sm:p-4 rounded-lg border ${
-              message.includes('sucesso') 
-                ? 'bg-green-500 bg-opacity-20 border-green-400 text-green-300' 
-                : 'bg-red-500 bg-opacity-20 border-red-400 text-red-300'
-            }`}>
-              <p className="text-xs sm:text-sm">{message}</p>
-            </div>
-          )}
+          {/* Notifications */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+            <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
+              <div className="flex items-center mb-4 sm:mb-6">
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 mr-2 sm:mr-3" />
+                <h2 className="text-lg sm:text-xl font-semibold text-white">Notificações</h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm sm:text-base text-white">Notificações por Email</h4>
+                    <p className="text-xs sm:text-sm text-gray-400">Receber atualizações importantes</p>
+                  </div>
+                  <button
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      notifications: { ...prev.notifications, email: !prev.notifications.email }
+                    }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.notifications.email ? 'bg-green-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.email ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
 
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm sm:text-base text-white">Erros de Sincronização</h4>
+                    <p className="text-xs sm:text-sm text-gray-400">Alertas quando sincronizações falharem</p>
+                  </div>
+                  <button
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      notifications: { ...prev.notifications, syncErrors: !prev.notifications.syncErrors }
+                    }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.notifications.syncErrors ? 'bg-green-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.syncErrors ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm sm:text-base text-white">Relatórios Prontos</h4>
+                    <p className="text-xs sm:text-sm text-gray-400">Avisar quando relatórios estiverem prontos</p>
+                  </div>
+                  <button
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      notifications: { ...prev.notifications, reports: !prev.notifications.reports }
+                    }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.notifications.reports ? 'bg-green-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.reports ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar Configurações
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <div className="flex justify-center pt-6">
             <button
-              type="button"
               onClick={handleLogout}
-              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-red-500 bg-opacity-20 hover:bg-opacity-30 border border-red-400 border-opacity-50 text-red-300 font-medium rounded-lg transition-all text-sm sm:text-base"
+              className="px-6 py-3 bg-red-500 bg-opacity-20 text-red-300 rounded-lg hover:bg-opacity-30 transition-all font-medium"
             >
-              <LogOut className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Sair da Conta
             </button>
-            
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="-ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  Salvar Alterações
-                </>
-              )}
-            </button>
           </div>
-        </form>
+        </div>
+
+        {/* Success/Error Message */}
+        {message && (
+          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+            message.includes('sucesso') 
+              ? 'bg-green-500 bg-opacity-20 border border-green-500 border-opacity-40 text-green-300'
+              : 'bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 text-red-300'
+          }`}>
+            <p className="text-sm">{message}</p>
+          </div>
+        )}
       </div>
     </div>
   )
-}
-
-// Helper component for loading state
-function Loading({ fullScreen = false, text = 'Carregando...' }: { fullScreen?: boolean, text?: string }) {
-  const content = (
-    <div className="flex flex-col items-center justify-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      <p className="text-gray-300">{text}</p>
-    </div>
-  )
-
-  if (fullScreen) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        {content}
-      </div>
-    )
-  }
-
-  return content
 }
