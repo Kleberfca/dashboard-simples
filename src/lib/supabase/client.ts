@@ -1,3 +1,4 @@
+// src/lib/supabase/client.ts
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 
@@ -7,7 +8,6 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
-
 // Singleton instance for client-side
 let clientInstance: ReturnType<typeof createClient> | null = null
 

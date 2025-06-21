@@ -1,84 +1,149 @@
-import crypto from 'crypto';
+// src/lib/crypto/encryption.ts
+import crypto from 'crypto'
 
-// Use environment variable for encryption key
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
-
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
-  throw new Error('ENCRYPTION_KEY must be 32 characters long');
-}
-
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
-const TAG_LENGTH = 16;
-const SALT_LENGTH = 64;
-const TAG_POSITION = SALT_LENGTH + IV_LENGTH;
-const ENCRYPTED_POSITION = TAG_POSITION + TAG_LENGTH;
+const algorithm = 'aes-256-gcm'
+const keyLength = 32 // 256 bits
+const ivLength = 16 // 128 bits
+const tagLength = 16 // 128 bits
+const saltLength = 64 // 512 bits
+const tagPosition = saltLength + ivLength
+const encryptedPosition = tagPosition + tagLength
 
 /**
- * Encrypts a string using AES-256-GCM
+ * Deriva uma chave a partir da chave de criptografia e um salt
+ */
+function deriveKey(salt: Buffer): Buffer {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key || key.length !== keyLength) {
+    throw new Error('ENCRYPTION_KEY must be exactly 32 characters')
+  }
+  
+  return crypto.pbkdf2Sync(key, salt, 100000, keyLength, 'sha256')
+}
+
+/**
+ * Criptografa um texto usando AES-256-GCM
  */
 export function encrypt(text: string): string {
   try {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const salt = crypto.randomBytes(SALT_LENGTH);
+    // Gerar salt e IV aleatórios
+    const salt = crypto.randomBytes(saltLength)
+    const iv = crypto.randomBytes(ivLength)
     
-    const key = crypto.pbkdf2Sync(ENCRYPTION_KEY, salt, 100000, 32, 'sha256');
+    // Derivar chave
+    const key = deriveKey(salt)
     
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    // Criar cipher
+    const cipher = crypto.createCipheriv(algorithm, key, iv)
     
+    // Criptografar
     const encrypted = Buffer.concat([
       cipher.update(text, 'utf8'),
       cipher.final()
-    ]);
+    ])
     
-    const tag = cipher.getAuthTag();
+    // Obter tag de autenticação
+    const tag = cipher.getAuthTag()
     
-    return Buffer.concat([salt, iv, tag, encrypted]).toString('base64');
+    // Combinar salt + iv + tag + encrypted
+    const combined = Buffer.concat([salt, iv, tag, encrypted])
+    
+    // Retornar como base64
+    return combined.toString('base64')
   } catch (error) {
-    console.error('Encryption error:', error);
-    throw new Error('Failed to encrypt data');
+    console.error('Encryption error:', error)
+    throw new Error('Failed to encrypt data')
   }
 }
 
 /**
- * Decrypts a string encrypted with encrypt()
+ * Descriptografa um texto criptografado com AES-256-GCM
  */
 export function decrypt(encryptedText: string): string {
   try {
-    const buffer = Buffer.from(encryptedText, 'base64');
+    // Converter de base64
+    const combined = Buffer.from(encryptedText, 'base64')
     
-    const salt = buffer.slice(0, SALT_LENGTH);
-    const iv = buffer.slice(SALT_LENGTH, TAG_POSITION);
-    const tag = buffer.slice(TAG_POSITION, ENCRYPTED_POSITION);
-    const encrypted = buffer.slice(ENCRYPTED_POSITION);
+    // Extrair componentes
+    const salt = combined.slice(0, saltLength)
+    const iv = combined.slice(saltLength, tagPosition)
+    const tag = combined.slice(tagPosition, encryptedPosition)
+    const encrypted = combined.slice(encryptedPosition)
     
-    const key = crypto.pbkdf2Sync(ENCRYPTION_KEY, salt, 100000, 32, 'sha256');
+    // Derivar chave
+    const key = deriveKey(salt)
     
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(tag);
+    // Criar decipher
+    const decipher = crypto.createDecipheriv(algorithm, key, iv)
+    decipher.setAuthTag(tag)
     
+    // Descriptografar
     const decrypted = Buffer.concat([
       decipher.update(encrypted),
       decipher.final()
-    ]);
+    ])
     
-    return decrypted.toString('utf8');
+    return decrypted.toString('utf8')
   } catch (error) {
-    console.error('Decryption error:', error);
-    throw new Error('Failed to decrypt data');
+    console.error('Decryption error:', error)
+    throw new Error('Failed to decrypt data')
   }
 }
 
 /**
- * Encrypts an object by converting it to JSON first
+ * Criptografa um objeto JavaScript
  */
-export function encryptObject<T extends Record<string, any>>(obj: T): string {
-  return encrypt(JSON.stringify(obj));
+export function encryptObject(obj: Record<string, any>): string {
+  try {
+    const jsonString = JSON.stringify(obj)
+    return encrypt(jsonString)
+  } catch (error) {
+    console.error('Object encryption error:', error)
+    throw new Error('Failed to encrypt object')
+  }
 }
 
 /**
- * Decrypts an object that was encrypted with encryptObject
+ * Descriptografa para um objeto JavaScript
  */
-export function decryptObject<T extends Record<string, any>>(encryptedText: string): T {
-  return JSON.parse(decrypt(encryptedText));
+export function decryptObject(encryptedText: string): Record<string, any> {
+  try {
+    const jsonString = decrypt(encryptedText)
+    return JSON.parse(jsonString)
+  } catch (error) {
+    console.error('Object decryption error:', error)
+    throw new Error('Failed to decrypt object')
+  }
+}
+
+/**
+ * Hash de senha usando bcrypt-like approach com crypto nativo
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.randomBytes(16)
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512')
+  return salt.toString('hex') + ':' + hash.toString('hex')
+}
+
+/**
+ * Verifica senha contra hash
+ */
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  const [salt, hash] = hashedPassword.split(':')
+  const verifyHash = crypto.pbkdf2Sync(password, Buffer.from(salt, 'hex'), 100000, 64, 'sha512')
+  return hash === verifyHash.toString('hex')
+}
+
+/**
+ * Gera um token seguro
+ */
+export function generateSecureToken(length: number = 32): string {
+  return crypto.randomBytes(length).toString('hex')
+}
+
+/**
+ * Gera um ID único
+ */
+export function generateUniqueId(): string {
+  return crypto.randomUUID()
 }

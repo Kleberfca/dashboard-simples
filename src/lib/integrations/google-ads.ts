@@ -1,124 +1,118 @@
-import type { IntegrationConfig, IntegrationCredentials } from '@/types';
-
-interface GoogleAdsMetrics {
-  impressions: number;
-  clicks: number;
-  cost: number;
-  conversions: number;
-  conversion_value: number;
-}
+// src/lib/integrations/google-ads.ts
+import type { IntegrationConfig, IntegrationCredentials } from '@/types'
 
 /**
- * Test Google Ads connection
+ * Testa a conexão com o Google Ads
  */
-export async function testGoogleAdsConnection(credentials: IntegrationCredentials): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+export async function testGoogleAdsConnection(credentials: IntegrationCredentials): Promise<{ success: boolean; error?: string }> {
   try {
-    // Validate required fields
-    if (!credentials.client_id || !credentials.client_secret || 
-        !credentials.developer_token || !credentials.customer_id) {
+    // Validar credenciais obrigatórias
+    if (!credentials.client_id || !credentials.client_secret || !credentials.developer_token || !credentials.customer_id) {
       return {
         success: false,
-        error: 'Missing required credentials'
-      };
+        error: 'Credenciais incompletas. Verifique todos os campos obrigatórios.'
+      }
     }
 
-    // In production, you would:
-    // 1. Exchange credentials for access token
-    // 2. Make a test API call to Google Ads API
-    // 3. Verify the response
-
-    // Mock validation for MVP
-    const isValid = credentials.customer_id.match(/^\d{10}$/);
+    // TODO: Implementar teste real com a API do Google Ads
+    // Por enquanto, simular validação
     
-    if (!isValid) {
+    // Simular delay de API
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Validação básica do formato
+    if (credentials.customer_id.length !== 10 || !/^\d+$/.test(credentials.customer_id)) {
       return {
         success: false,
-        error: 'Invalid Customer ID format'
-      };
+        error: 'Customer ID deve ter exatamente 10 dígitos'
+      }
     }
 
-    return { success: true };
+    // Simulação de sucesso
+    return { success: true }
   } catch (error) {
+    console.error('Google Ads connection test error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Connection test failed'
-    };
+      error: 'Erro ao testar conexão. Verifique suas credenciais.'
+    }
   }
 }
 
 /**
- * Sync Google Ads data
+ * Sincroniza dados do Google Ads
  */
-export async function syncGoogleAdsData(
-  config: IntegrationConfig,
-  credentials: IntegrationCredentials
-): Promise<{ success: boolean; recordsProcessed: number; error?: string }> {
+export async function syncGoogleAdsData(config: IntegrationConfig, credentials: any): Promise<{ success: boolean; recordsProcessed: number; error?: string }> {
   try {
-    // In production, implement actual Google Ads API calls
-    // For MVP, we'll simulate the sync process
+    console.log('Syncing Google Ads data for integration:', config.id)
 
-    const mockCampaigns = generateMockCampaigns(config.company_id);
-    const recordsProcessed = mockCampaigns.length * 7; // 7 days of data per campaign
+    // TODO: Implementar sincronização real com a API do Google Ads
+    // 1. Autenticar com OAuth2
+    // 2. Buscar campanhas ativas
+    // 3. Buscar métricas do período
+    // 4. Salvar no banco de dados
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Por enquanto, simular sincronização
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // Gerar dados mock
+    const mockCampaigns = [
+      {
+        id: `google_${Date.now()}_1`,
+        name: 'Campanha Search - Brand',
+        status: 'active',
+        budget: 5000,
+        spent: 3200,
+        impressions: 45000,
+        clicks: 1200,
+        conversions: 85
+      },
+      {
+        id: `google_${Date.now()}_2`,
+        name: 'Campanha Shopping',
+        status: 'active',
+        budget: 8000,
+        spent: 6500,
+        impressions: 120000,
+        clicks: 3500,
+        conversions: 120
+      }
+    ]
+
+    // Simular processamento
+    const recordsProcessed = mockCampaigns.length * 30 // 30 dias de métricas por campanha
 
     return {
       success: true,
       recordsProcessed
-    };
+    }
   } catch (error) {
+    console.error('Google Ads sync error:', error)
     return {
       success: false,
       recordsProcessed: 0,
-      error: error instanceof Error ? error.message : 'Sync failed'
-    };
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    }
   }
 }
 
 /**
- * Generate mock campaign data for testing
+ * Busca campanhas do Google Ads
  */
-function generateMockCampaigns(companyId: string) {
-  return [
-    {
-      id: 'google_campaign_1',
-      name: 'Brand Campaign - Search',
-      status: 'ENABLED',
-      metrics: {
-        impressions: 15420,
-        clicks: 847,
-        cost: 1234.56,
-        conversions: 23,
-        conversion_value: 4500.00
-      }
-    },
-    {
-      id: 'google_campaign_2',
-      name: 'Performance Max - All Products',
-      status: 'ENABLED',
-      metrics: {
-        impressions: 28350,
-        clicks: 1420,
-        cost: 2890.30,
-        conversions: 41,
-        conversion_value: 8200.00
-      }
-    },
-    {
-      id: 'google_campaign_3',
-      name: 'Shopping - Best Sellers',
-      status: 'ENABLED',
-      metrics: {
-        impressions: 45600,
-        clicks: 2100,
-        cost: 3456.78,
-        conversions: 67,
-        conversion_value: 12300.00
-      }
-    }
-  ];
+export async function fetchGoogleAdsCampaigns(credentials: IntegrationCredentials): Promise<any[]> {
+  // TODO: Implementar busca real de campanhas
+  return []
+}
+
+/**
+ * Busca métricas do Google Ads
+ */
+export async function fetchGoogleAdsMetrics(
+  credentials: IntegrationCredentials,
+  campaignId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<any[]> {
+  // TODO: Implementar busca real de métricas
+  return []
 }
