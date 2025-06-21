@@ -1,17 +1,17 @@
 {
-  "name": "marketing-dashboard",
+  "name": "dashboard-simples",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "setup": "node scripts/setup.js",
     "type:check": "tsc --noEmit",
+    "clean": "rm -rf .next node_modules package-lock.json && npm install",
     "db:migrate": "supabase migration up",
     "db:reset": "supabase db reset",
-    "type:generate": "supabase gen types typescript --local > src/lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/supabase/database.types.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -32,5 +32,9 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=10.0.0"
   }
 }

@@ -5,22 +5,23 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BarChart3, Eye, EyeOff, Loader2, Building, User } from 'lucide-react'
+import { BarChart3, Building, User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    companyName: ''
-  })
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    companyName: '',
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError('')
   }
@@ -46,7 +47,7 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
       
-      // 1. Criar usuário no Auth
+      // 1. Criar conta de usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -58,11 +59,7 @@ export default function RegisterPage() {
       })
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
-          setError('Este email já está cadastrado')
-        } else {
-          setError('Erro ao criar conta. Tente novamente.')
-        }
+        setError(authError.message)
         return
       }
 
@@ -72,17 +69,22 @@ export default function RegisterPage() {
       }
 
       // 2. Criar empresa
+      const slug = formData.companyName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
           name: formData.companyName,
-          slug: formData.companyName.toLowerCase().replace(/\s+/g, '-')
+          slug: slug
         })
         .select()
         .single()
 
       if (companyError) {
-        console.error('Company error:', companyError)
+        console.error('Error creating company:', companyError)
         setError('Erro ao criar empresa. Tente novamente.')
         return
       }
@@ -90,16 +92,17 @@ export default function RegisterPage() {
       // 3. Atualizar usuário com company_id
       const { error: userError } = await supabase
         .from('users')
-        .update({
+        .insert({
+          id: authData.user.id,
+          email: formData.email,
           name: formData.name,
           company_id: company.id,
           role: 'admin'
         })
-        .eq('id', authData.user.id)
 
       if (userError) {
-        console.error('User update error:', userError)
-        setError('Erro ao configurar conta. Tente novamente.')
+        console.error('Error updating user:', userError)
+        setError('Erro ao configurar usuário. Tente novamente.')
         return
       }
 
@@ -173,6 +176,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <Mail className="inline h-4 w-4 mr-1" />
                   Email
                 </label>
                 <input
@@ -187,6 +191,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <Lock className="inline h-4 w-4 mr-1" />
                   Senha
                 </label>
                 <div className="relative">
@@ -195,9 +200,8 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     required
-                    minLength={6}
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="••••••••"
                   />
                   <button
                     type="button"

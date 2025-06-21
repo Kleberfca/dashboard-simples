@@ -95,33 +95,34 @@ CREATE TABLE IF NOT EXISTS daily_metrics (
   revenue DECIMAL(10, 2) DEFAULT 0,
   deals_closed INTEGER DEFAULT 0,
   
-  -- Calculated metrics (pode ser calculado em runtime, mas armazenamos para performance)
-  ctr DECIMAL(5, 2), -- Click-through rate
-  cpm DECIMAL(10, 2), -- Cost per mille
-  cpc DECIMAL(10, 2), -- Cost per click
-  cpl DECIMAL(10, 2), -- Cost per lead
-  roas DECIMAL(10, 2), -- Return on ad spend
+  -- Calculated metrics (for performance)
+  ctr DECIMAL(5, 2),
+  cpm DECIMAL(10, 2),
+  cpc DECIMAL(10, 2),
+  cpl DECIMAL(10, 2),
+  roas DECIMAL(10, 2),
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  -- Garante que não há duplicatas para a mesma campanha/criativo/data
+  -- Ensure unique metrics per day
   UNIQUE(company_id, campaign_id, creative_id, date)
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_companies_slug ON companies(slug);
-CREATE INDEX idx_users_company ON users(company_id);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_integration_configs_company ON integration_configs(company_id);
-CREATE INDEX idx_campaigns_company ON campaigns(company_id);
-CREATE INDEX idx_campaigns_integration ON campaigns(integration_config_id);
-CREATE INDEX idx_creatives_campaign ON creatives(campaign_id);
-CREATE INDEX idx_daily_metrics_company_date ON daily_metrics(company_id, date);
-CREATE INDEX idx_daily_metrics_campaign ON daily_metrics(campaign_id);
-CREATE INDEX idx_daily_metrics_date ON daily_metrics(date DESC);
+CREATE INDEX idx_campaigns_company_id ON campaigns(company_id);
+CREATE INDEX idx_campaigns_platform ON campaigns(platform);
+CREATE INDEX idx_campaigns_status ON campaigns(status);
 
--- Create updated_at trigger function
+CREATE INDEX idx_daily_metrics_company_id ON daily_metrics(company_id);
+CREATE INDEX idx_daily_metrics_campaign_id ON daily_metrics(campaign_id);
+CREATE INDEX idx_daily_metrics_date ON daily_metrics(date);
+CREATE INDEX idx_daily_metrics_compound ON daily_metrics(company_id, campaign_id, date);
+
+CREATE INDEX idx_integration_configs_company_id ON integration_configs(company_id);
+CREATE INDEX idx_integration_configs_platform ON integration_configs(platform);
+
+-- Create functions for updated_at triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -130,7 +131,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers for updated_at
+-- Add triggers for updated_at
 CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -143,94 +144,5 @@ CREATE TRIGGER update_integration_configs_updated_at BEFORE UPDATE ON integratio
 CREATE TRIGGER update_campaigns_updated_at BEFORE UPDATE ON campaigns
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_creatives_updated_at BEFORE UPDATE ON creatives
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_daily_metrics_updated_at BEFORE UPDATE ON daily_metrics
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Row Level Security (RLS) Policies
--- Companies
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Empresas são visíveis apenas para seus usuários"
-  ON companies FOR SELECT
-  USING (id IN (
-    SELECT company_id FROM users WHERE id = auth.uid()
-  ));
-
--- Users
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Usuários podem ver apenas membros da mesma empresa"
-  ON users FOR SELECT
-  USING (company_id IN (
-    SELECT company_id FROM users WHERE id = auth.uid()
-  ));
-
-CREATE POLICY "Apenas admins podem inserir usuários"
-  ON users FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
-      AND role = 'admin' 
-      AND company_id = NEW.company_id
-    )
-  );
-
-CREATE POLICY "Usuários podem atualizar seu próprio perfil"
-  ON users FOR UPDATE
-  USING (id = auth.uid())
-  WITH CHECK (id = auth.uid());
-
--- Integration Configs
-ALTER TABLE integration_configs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Integrações são visíveis apenas para usuários da empresa"
-  ON integration_configs FOR SELECT
-  USING (company_id IN (
-    SELECT company_id FROM users WHERE id = auth.uid()
-  ));
-
-CREATE POLICY "Apenas admins podem gerenciar integrações"
-  ON integration_configs FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
-      AND role = 'admin' 
-      AND company_id = integration_configs.company_id
-    )
-  );
-
--- Campaigns
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Campanhas são visíveis apenas para usuários da empresa"
-  ON campaigns FOR SELECT
-  USING (company_id IN (
-    SELECT company_id FROM users WHERE id = auth.uid()
-  ));
-
--- Daily Metrics
-ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Métricas são visíveis apenas para usuários da empresa"
-  ON daily_metrics FOR SELECT
-  USING (company_id IN (
-    SELECT company_id FROM users WHERE id = auth.uid()
-  ));
-
--- Comments for documentation
-COMMENT ON TABLE companies IS 'Empresas/organizações que usam o sistema';
-COMMENT ON TABLE users IS 'Usuários do sistema, estende auth.users do Supabase';
-COMMENT ON TABLE integration_configs IS 'Configurações de integração com plataformas externas';
-COMMENT ON TABLE campaigns IS 'Campanhas de marketing importadas das plataformas';
-COMMENT ON TABLE creatives IS 'Criativos/anúncios das campanhas';
-COMMENT ON TABLE daily_metrics IS 'Métricas diárias agregadas por campanha/criativo';
-
-COMMENT ON COLUMN users.role IS 'Papel do usuário: admin (total), editor (criar/editar), viewer (apenas visualizar)';
-COMMENT ON COLUMN integration_configs.credentials_encrypted IS 'Credenciais criptografadas da integração';
-COMMENT ON COLUMN daily_metrics.leads_qualified IS 'Leads que passaram por qualificação';
-COMMENT ON COLUMN daily_metrics.leads_icp IS 'Leads que se encaixam no Ideal Customer Profile';
