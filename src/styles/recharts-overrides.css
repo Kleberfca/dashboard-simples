@@ -1,0 +1,22 @@
+/* Recharts custom styles */
+.recharts-pie-sector {
+  cursor: pointer;
+  outline: none !important;
+}
+
+.recharts-pie-sector:focus {
+  outline: none !important;
+}
+
+.recharts-surface {
+  outline: none !important;
+}
+
+.recharts-wrapper {
+  outline: none !important;
+}
+
+/* Remove active state styling */
+.recharts-active-shape {
+  outline: none !important;
+}

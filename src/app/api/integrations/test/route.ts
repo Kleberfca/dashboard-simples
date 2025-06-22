@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     // Validate platform
     if (!platform || !testFunctions[platform as PlatformType]) {
       return NextResponse.json(
-        { success: false, error: 'Invalid platform' },
+        { success: false, error: 'Plataforma inválida' },
         { status: 400 }
       );
     }
@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
     // Validate credentials
     if (!credentials || typeof credentials !== 'object') {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: 'Credenciais inválidas' },
         { status: 400 }
       );
     }
 
-    // Test the connection
+    // Test the connection with real validation
     const testFunction = testFunctions[platform as PlatformType];
     const result = await testFunction(credentials);
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Test connection error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }

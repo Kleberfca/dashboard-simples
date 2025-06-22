@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { FileText, Download, FileSpreadsheet, BarChart3, PieChart, Calendar, Filter, TrendingUp, DollarSign, Users } from 'lucide-react'
+import DatePicker from '@/components/ui/DatePicker'
 
 type ReportType = 'summary' | 'detailed' | 'comparison'
 type ReportFormat = 'pdf' | 'excel' | 'csv'
@@ -211,22 +212,20 @@ export default function ReportsPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Data Início
                 </label>
-                <input
-                  type="date"
+                <DatePicker 
                   value={dateRange.start}
-                  onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                  className="w-full px-4 py-2 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  onChange={(date) => setDateRange({ ...dateRange, start: date })}
+                  placeholder="Selecione a data inicial"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Data Fim
                 </label>
-                <input
-                  type="date"
+                <DatePicker 
                   value={dateRange.end}
-                  onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                  className="w-full px-4 py-2 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  onChange={(date) => setDateRange({ ...dateRange, end: date })}
+                  placeholder="Selecione a data final"
                 />
               </div>
             </div>

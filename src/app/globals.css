@@ -107,3 +107,62 @@ textarea:focus {
 .shadow-modern-lg {
   box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
 }
+
+/* Recharts overrides */
+.recharts-pie-sector {
+  cursor: pointer;
+  outline: none !important;
+}
+
+.recharts-pie-sector:focus {
+  outline: none !important;
+}
+
+.recharts-surface {
+  outline: none !important;
+}
+
+.recharts-wrapper {
+  outline: none !important;
+}
+
+.recharts-active-shape {
+  outline: none !important;
+}
+
+/* Remove bar chart click highlight */
+.recharts-bar-rectangle {
+  outline: none !important;
+}
+
+.recharts-bar-rectangle:focus {
+  outline: none !important;
+}
+
+/* Ensure proper text colors in tooltips */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-tooltip-label {
+  color: #9CA3AF !important;
+}
+
+.recharts-tooltip-item {
+  color: #FFFFFF !important;
+}
+
+/* Remove any potential focus rings */
+*:focus {
+  outline: none;
+}
+
+/* Add custom focus styles for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}

@@ -11,7 +11,8 @@ import {
   BarChart3,
   TrendingUp,
   Menu,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -91,6 +92,18 @@ export default function DashboardLayoutWrapper({ children, user }: DashboardLayo
               )
             })}
           </nav>
+
+          {/* Back to home link - Mobile only */}
+          {sidebarOpen && (
+            <Link
+              href="/"
+              className="lg:hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors border-t border-gray-800"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao início
+            </Link>
+          )}
 
           {/* User section */}
           <div className="border-t border-gray-800 p-3 sm:p-4">

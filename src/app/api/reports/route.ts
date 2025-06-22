@@ -1,6 +1,7 @@
 // src/app/api/reports/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import * as XLSX from 'xlsx'
 import type { 
   ReportTotals, 
   ReportKPIs, 
@@ -33,8 +34,8 @@ export async function GET(req: NextRequest) {
 
     // Get report parameters
     const searchParams = req.nextUrl.searchParams
-    const type = searchParams.get('type') || 'summary' // summary, detailed, comparison
-    const format = searchParams.get('format') || 'json' // json, csv
+    const type = searchParams.get('type') || 'summary'
+    const format = searchParams.get('format') || 'json'
     const startDate = searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
     const endDate = searchParams.get('endDate') || new Date().toISOString()
     const platforms = searchParams.get('platforms')?.split(',') || []
@@ -102,6 +103,14 @@ export async function GET(req: NextRequest) {
           'Content-Disposition': `attachment; filename="report-${type}-${new Date().toISOString().split('T')[0]}.csv"`
         }
       })
+    } else if (format === 'excel') {
+      const excel = convertToExcel(report)
+      return new NextResponse(excel, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="report-${type}-${new Date().toISOString().split('T')[0]}.xlsx"`
+        }
+      })
     }
 
     return NextResponse.json({ report })
@@ -109,6 +118,66 @@ export async function GET(req: NextRequest) {
     console.error('Error generating report:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+// Função para converter para Excel
+function convertToExcel(report: any): Buffer {
+  const wb = XLSX.utils.book_new()
+  
+  // Criar planilha de resumo
+  const summaryData = [
+    ['Dashboard Tryum - Relatório de Marketing'],
+    [],
+    ['Empresa:', report.company.name],
+    ['Período:', `${new Date(report.period.start).toLocaleDateString('pt-BR')} - ${new Date(report.period.end).toLocaleDateString('pt-BR')}`],
+    ['Gerado em:', new Date(report.generatedAt).toLocaleString('pt-BR')],
+    []
+  ]
+
+  if (report.type === 'summary' && report.totals) {
+    summaryData.push(
+      ['RESUMO EXECUTIVO'],
+      ['Métrica', 'Valor'],
+      ['Impressões', report.totals.impressions],
+      ['Cliques', report.totals.clicks],
+      ['Investimento Total', report.totals.cost],
+      ['Leads', report.totals.leads],
+      ['Receita', report.totals.revenue],
+      [],
+      ['KPIs'],
+      ['CTR', `${report.kpis.ctr}%`],
+      ['CPC', `R$ ${report.kpis.cpc}`],
+      ['CPL', `R$ ${report.kpis.cpl}`],
+      ['ROAS', `${report.kpis.roas}x`]
+    )
+  }
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+  XLSX.utils.book_append_sheet(wb, summarySheet, 'Resumo')
+
+  // Criar planilha de dados detalhados se houver
+  if (report.type === 'detailed' && report.campaigns) {
+    const detailData = report.campaigns.map((c: any) => ({
+      'Campanha': c.campaign.name,
+      'Plataforma': c.campaign.platform,
+      'Impressões': c.metrics.impressions,
+      'Cliques': c.metrics.clicks,
+      'Custo': c.metrics.cost,
+      'Leads': c.metrics.leads,
+      'Receita': c.metrics.revenue,
+      'CTR': c.kpis.ctr,
+      'CPC': c.kpis.cpc,
+      'CPL': c.kpis.cpl,
+      'ROAS': c.kpis.roas
+    }))
+    
+    const detailSheet = XLSX.utils.json_to_sheet(detailData)
+    XLSX.utils.book_append_sheet(wb, detailSheet, 'Campanhas')
+  }
+
+  // Converter para buffer
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
+  return excelBuffer
 }
 
 // Helper functions

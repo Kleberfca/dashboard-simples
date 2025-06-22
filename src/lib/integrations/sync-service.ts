@@ -80,45 +80,103 @@ export class SyncService {
         // Update sync log and integration status
         await this.completeSyncLog(syncLogId, 'completed', result.recordsProcessed);
         await this.updateIntegrationStatus(integration.id, 'success');
+        
+        // Trigger real-time metric calculation
+        await this.calculateRealTimeMetrics(integration.company_id);
       } else {
         throw new Error(result.error || 'Sync failed');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Sync error for integration ${integration.id}:`, errorMessage);
       
-      // Update sync log and integration status with error
+      // Update sync log and integration status
       await this.completeSyncLog(syncLogId, 'failed', 0, errorMessage);
       await this.updateIntegrationStatus(integration.id, 'failed', errorMessage);
-      
-      console.error(`Sync failed for integration ${integration.id}:`, error);
     }
   }
 
   /**
-   * Create a new sync log entry
+   * Calculate real-time metrics after sync
    */
-  private async createSyncLog(integrationConfigId: string): Promise<string> {
+  private async calculateRealTimeMetrics(companyId: string): Promise<void> {
+    const supabase = await createClient();
+    
+    // Get last 30 days of data
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data: metrics, error } = await supabase
+      .from('daily_metrics')
+      .select('*')
+      .eq('company_id', companyId)
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (error || !metrics) {
+      console.error('Error fetching metrics for calculation:', error);
+      return;
+    }
+
+    // Calculate aggregated metrics
+    const totalMetrics = metrics.reduce((acc, metric) => ({
+      impressions: acc.impressions + (metric.impressions || 0),
+      clicks: acc.clicks + (metric.clicks || 0),
+      cost: acc.cost + (metric.cost || 0),
+      leads: acc.leads + (metric.leads || 0),
+      revenue: acc.revenue + (metric.revenue || 0)
+    }), {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      leads: 0,
+      revenue: 0
+    });
+
+    // Calculate KPIs
+    const kpis = {
+      ctr: totalMetrics.impressions > 0 ? (totalMetrics.clicks / totalMetrics.impressions * 100) : 0,
+      cpc: totalMetrics.clicks > 0 ? (totalMetrics.cost / totalMetrics.clicks) : 0,
+      cpl: totalMetrics.leads > 0 ? (totalMetrics.cost / totalMetrics.leads) : 0,
+      roas: totalMetrics.cost > 0 ? (totalMetrics.revenue / totalMetrics.cost) : 0
+    };
+
+    // Store calculated metrics for quick access
+    await supabase
+      .from('company_metrics_cache')
+      .upsert({
+        company_id: companyId,
+        period: '30d',
+        metrics: totalMetrics,
+        kpis: kpis,
+        updated_at: new Date().toISOString()
+      });
+  }
+
+  // Helper methods remain the same...
+  private async createSyncLog(integrationId: string): Promise<string> {
     const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('sync_logs')
       .insert({
-        integration_config_id: integrationConfigId,
-        status: 'started',
+        integration_config_id: integrationId,
+        status: 'in_progress',
+        started_at: new Date().toISOString()
       })
       .select('id')
       .single();
 
-    if (error) throw error;
+    if (error || !data) {
+      throw new Error('Failed to create sync log');
+    }
+
     return data.id;
   }
 
-  /**
-   * Complete a sync log entry
-   */
   private async completeSyncLog(
     syncLogId: string, 
-    status: 'completed' | 'failed',
+    status: 'completed' | 'failed', 
     recordsProcessed: number,
     errorMessage?: string
   ): Promise<void> {
@@ -127,17 +185,14 @@ export class SyncService {
     await supabase
       .from('sync_logs')
       .update({
-        completed_at: new Date().toISOString(),
         status,
+        completed_at: new Date().toISOString(),
         records_processed: recordsProcessed,
-        error_message: errorMessage,
+        error_message: errorMessage
       })
       .eq('id', syncLogId);
   }
 
-  /**
-   * Update integration status
-   */
   private async updateIntegrationStatus(
     integrationId: string,
     status: 'success' | 'failed' | 'in_progress',
@@ -145,90 +200,18 @@ export class SyncService {
   ): Promise<void> {
     const supabase = await createClient();
     
-    const updates: any = {
-      last_sync_status: status,
-      last_sync_at: new Date().toISOString(),
-    };
-
-    if (error) {
-      updates.last_sync_error = error;
-    } else if (status === 'success') {
-      updates.last_sync_error = null;
-    }
-
     await supabase
       .from('integration_configs')
-      .update(updates)
+      .update({
+        last_sync_at: new Date().toISOString(),
+        last_sync_status: status,
+        last_sync_error: error || null
+      })
       .eq('id', integrationId);
-  }
-
-  /**
-   * Process and save metrics data
-   */
-  async saveMetrics(
-    companyId: string,
-    campaignId: string,
-    creativeId: string | null,
-    date: string,
-    metrics: Partial<DailyMetrics>
-  ): Promise<void> {
-    const supabase = await createClient();
-    
-    // Calculate derived metrics
-    const calculatedMetrics = this.calculateMetrics(metrics);
-
-    // Upsert metrics data
-    const { error } = await supabase
-      .from('daily_metrics')
-      .upsert({
-        company_id: companyId,
-        campaign_id: campaignId,
-        creative_id: creativeId,
-        date,
-        ...metrics,
-        ...calculatedMetrics,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'company_id,campaign_id,creative_id,date',
-      });
-
-    if (error) {
-      console.error('Error saving metrics:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Calculate derived metrics
-   */
-  private calculateMetrics(metrics: Partial<DailyMetrics>): Partial<DailyMetrics> {
-    const calculated: Partial<DailyMetrics> = {};
-
-    if (metrics.impressions && metrics.clicks) {
-      calculated.ctr = (metrics.clicks / metrics.impressions) * 100;
-    }
-
-    if (metrics.impressions && metrics.cost) {
-      calculated.cpm = (metrics.cost / metrics.impressions) * 1000;
-    }
-
-    if (metrics.clicks && metrics.cost) {
-      calculated.cpc = metrics.cost / metrics.clicks;
-    }
-
-    if (metrics.leads && metrics.cost) {
-      calculated.cpl = metrics.cost / metrics.leads;
-    }
-
-    if (metrics.revenue && metrics.cost && metrics.cost > 0) {
-      calculated.roas = metrics.revenue / metrics.cost;
-    }
-
-    return calculated;
   }
 }
 
-// Singleton instance
+// Export singleton instance
 let syncServiceInstance: SyncService | null = null;
 
 export function getSyncService(): SyncService {

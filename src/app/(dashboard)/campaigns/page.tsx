@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, Calendar, DollarSign, Users, Activity, Filter, RefreshCw, Eye, Pause, Play, MoreVertical, Plus, Edit, Trash2, X } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import DatePicker from '@/components/ui/DatePicker'
 
 interface Campaign {
   id: string
@@ -568,11 +569,10 @@ export default function CampaignsPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Data Início
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker 
                     value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onChange={(date) => setFormData({ ...formData, startDate: date })}
+                    placeholder="Selecione a data"
                   />
                 </div>
 
@@ -580,11 +580,10 @@ export default function CampaignsPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Data Fim
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker 
                     value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onChange={(date) => setFormData({ ...formData, endDate: date })}
+                    placeholder="Selecione a data"
                   />
                 </div>
               </div>
