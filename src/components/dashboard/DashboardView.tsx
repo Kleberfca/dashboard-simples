@@ -230,25 +230,8 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
     return null
   }
 
-  // Custom label for pie chart
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180)
-    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180)
-
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    )
-  }
+  // Custom label vazio para o gráfico de pizza (remove os labels em cima)
+  const renderEmptyLabel = () => null
 
   if (loading) {
     return (
@@ -382,8 +365,22 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                         <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="investimento" fill="url(#colorBar1)" name="Investimento" radius={[8, 8, 0, 0]} />
-                        <Bar dataKey="leads" fill="url(#colorBar2)" name="Leads" radius={[8, 8, 0, 0]} />
+                        <Bar 
+                          dataKey="investimento" 
+                          fill="url(#colorBar1)" 
+                          name="Investimento" 
+                          radius={[8, 8, 0, 0]}
+                          animationDuration={500}
+                          style={{ cursor: 'default' }}
+                        />
+                        <Bar 
+                          dataKey="leads" 
+                          fill="url(#colorBar2)" 
+                          name="Leads" 
+                          radius={[8, 8, 0, 0]}
+                          animationDuration={500}
+                          style={{ cursor: 'default' }}
+                        />
                       </BarChart>
                     )}
                   </ResponsiveContainer>
@@ -405,19 +402,20 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={renderCustomizedLabel}
+                      label={renderEmptyLabel}
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
                       animationBegin={0}
                       animationDuration={500}
+                      isAnimationActive={false}
                     >
                       {platformData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
                           fill={COLORS[index % COLORS.length]}
-                          style={{ outline: 'none' }}
+                          style={{ outline: 'none', cursor: 'default' }}
                         />
                       ))}
                     </Pie>

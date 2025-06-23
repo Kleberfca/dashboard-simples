@@ -166,3 +166,58 @@ textarea:focus-visible {
   outline: 2px solid #3B82F6;
   outline-offset: 2px;
 }
+
+/* ... estilos existentes ... */
+
+/* Remove bar chart selection highlight */
+.recharts-bar-rectangle {
+  outline: none !important;
+  cursor: default !important;
+}
+
+.recharts-bar-rectangle:focus {
+  outline: none !important;
+}
+
+.recharts-bar-rectangle:active {
+  outline: none !important;
+}
+
+/* Remove any active bar styling */
+.recharts-active-bar {
+  outline: none !important;
+  opacity: 1 !important;
+}
+
+/* Remove pie chart label lines */
+.recharts-pie-label-line {
+  display: none !important;
+}
+
+/* Remove pie chart labels */
+.recharts-pie-label-text {
+  display: none !important;
+}
+
+/* Ensure proper mobile calendar styling */
+@media (max-width: 640px) {
+  .fixed.inset-0 {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Prevent bar selection effects */
+.recharts-layer.recharts-bar-rectangles {
+  pointer-events: none;
+}
+
+.recharts-layer.recharts-bar-rectangle {
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Override Recharts active shape for bars */
+.recharts-bar.recharts-active-shape {
+  filter: none !important;
+  opacity: 1 !important;
+}
