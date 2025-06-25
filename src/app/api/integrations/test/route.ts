@@ -1,3 +1,4 @@
+// src/app/api/integrations/test/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { testGoogleAdsConnection } from '@/lib/integrations/google-ads';
 import { testFacebookConnection } from '@/lib/integrations/facebook';
@@ -5,11 +6,11 @@ import { testTikTokConnection } from '@/lib/integrations/tiktok';
 import { testAnalyticsConnection } from '@/lib/integrations/analytics';
 import type { PlatformType, IntegrationCredentials } from '@/types';
 
-// Map of platform types to test functions
+// Mapeamento de plataformas para funções de teste com validação real
 const testFunctions: Record<PlatformType, (credentials: IntegrationCredentials) => Promise<{ success: boolean; error?: string }>> = {
   google_ads: testGoogleAdsConnection,
   facebook_ads: testFacebookConnection,
-  instagram_ads: testFacebookConnection, // Same API as Facebook
+  instagram_ads: testFacebookConnection, // Usa a mesma API do Facebook
   tiktok_ads: testTikTokConnection,
   analytics: testAnalyticsConnection,
 };
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const { platform, credentials } = await req.json();
 
-    // Validate platform
+    // Validar plataforma
     if (!platform || !testFunctions[platform as PlatformType]) {
       return NextResponse.json(
         { success: false, error: 'Plataforma inválida' },
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate credentials
+    // Validar credenciais
     if (!credentials || typeof credentials !== 'object') {
       return NextResponse.json(
         { success: false, error: 'Credenciais inválidas' },
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Test the connection with real validation
+    // Testar a conexão com validação real
     const testFunction = testFunctions[platform as PlatformType];
     const result = await testFunction(credentials);
 

@@ -331,47 +331,49 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                 <div className="h-64 sm:h-72 lg:h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'line' ? (
-                      <AreaChart data={chartData}>
+                      <LineChart data={chartData}>
                         <defs>
-                          <linearGradient id="colorInvestimento" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorLine1" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                           </linearGradient>
-                          <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorLine2" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Area type="monotone" dataKey="investimento" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorInvestimento)" name="Investimento" />
-                        <Area type="monotone" dataKey="leads" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#colorLeads)" name="Leads" />
-                      </AreaChart>
+                        <Line type="monotone" dataKey="investimento" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6', r: 4 }} />
+                        <Line type="monotone" dataKey="leads" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: '#8B5CF6', r: 4 }} />
+                      </LineChart>
                     ) : (
                       <BarChart data={chartData}>
                         <defs>
                           <linearGradient id="colorBar1" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.4}/>
                           </linearGradient>
                           <linearGradient id="colorBar2" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.4}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip 
+                          content={<CustomTooltip />} 
+                          cursor={{ fill: 'transparent' }} // CORREÇÃO: Remove o fundo transparente no hover
+                        />
                         <Bar 
                           dataKey="investimento" 
                           fill="url(#colorBar1)" 
                           name="Investimento" 
                           radius={[8, 8, 0, 0]}
                           animationDuration={500}
-                          style={{ cursor: 'default' }}
                         />
                         <Bar 
                           dataKey="leads" 
@@ -379,7 +381,6 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                           name="Leads" 
                           radius={[8, 8, 0, 0]}
                           animationDuration={500}
-                          style={{ cursor: 'default' }}
                         />
                       </BarChart>
                     )}

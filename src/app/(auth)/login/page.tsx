@@ -5,7 +5,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BarChart3, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { BarChart3, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -47,10 +47,31 @@ export default function LoginPage() {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
 
+      {/* Botão Voltar - Desktop */}
+      <Link 
+        href="/"
+        className="hidden sm:block absolute top-8 left-8 text-gray-400 hover:text-white transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <ArrowLeft className="h-5 w-5" />
+          <span>Voltar ao início</span>
+        </div>
+      </Link>
+
       <div className="w-full max-w-md">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
           <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 border border-white border-opacity-20">
+            
+            {/* Botão Voltar - Mobile */}
+            <Link 
+              href="/"
+              className="sm:hidden flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm">Voltar ao início</span>
+            </Link>
+
             {/* Logo */}
             <div className="flex justify-center mb-8">
               <div className="relative">
@@ -61,79 +82,86 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <h1 className="text-2xl font-bold text-white text-center mb-2">
-              Bem-vindo de volta
-            </h1>
-            <p className="text-gray-300 text-center mb-8">
-              Faça login para acessar seu dashboard
-            </p>
+            <h2 className="text-2xl font-bold text-center text-white mb-8">
+              Entre em sua conta
+            </h2>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            {/* [... resto do código do formulário permanece igual ...] */}
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              {error && (
+                <div className="bg-red-500 bg-opacity-20 text-red-300 p-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                   Email
                 </label>
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all"
                   placeholder="seu@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                   Senha
                 </label>
                 <div className="relative">
                   <input
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all pr-12"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
 
-              {error && (
-                <div className="p-3 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 rounded-lg">
-                  <p className="text-sm text-red-300">{error}</p>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <Link href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                  Esqueceu a senha?
+                </Link>
+              </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
               >
-                {loading && <Loader2 className="h-5 w-5 animate-spin" />}
-                {loading ? 'Entrando...' : 'Entrar'}
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                    Entrando...
+                  </>
+                ) : (
+                  'Entrar'
+                )}
               </button>
-
-              <div className="flex items-center justify-between text-sm">
-                <Link href="/forgot-password" className="text-blue-400 hover:text-blue-300 transition-colors">
-                  Esqueceu a senha?
-                </Link>
-                <Link href="/register" className="text-blue-400 hover:text-blue-300 transition-colors">
-                  Criar conta
-                </Link>
-              </div>
             </form>
+
+            <p className="mt-8 text-center text-gray-300 text-sm">
+              Não tem uma conta?{' '}
+              <Link href="/register" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
+                Cadastre-se
+              </Link>
+            </p>
           </div>
         </div>
       </div>

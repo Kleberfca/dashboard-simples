@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import { TrendingUp, Calendar, DollarSign, Users, Activity, Filter, RefreshCw, Eye, Pause, Play, MoreVertical, Plus, Edit, Trash2, X } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import DatePicker from '@/components/ui/DatePicker'
+import PlatformFilter from '@/components/ui/PlatformFilter'
+import StatusFilter from '@/components/ui/StatusFilter'
 
 interface Campaign {
   id: string
@@ -185,40 +187,47 @@ export default function CampaignsPage() {
 
   const avgCTR = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100).toFixed(2) : '0'
   const avgCPL = totals.leads > 0 ? (totals.spent / totals.leads).toFixed(2) : '0'
-  const avgROAS = totals.spent > 0 ? ((totals.spent * 4.5) / totals.spent).toFixed(1) : '0'
+  const avgROAS = totals.spent > 0 ? (filteredCampaigns.reduce((acc, c) => acc + c.revenue, 0) / totals.spent).toFixed(2) : '0'
 
-  // Generate chart data from campaigns
-  const performanceData = campaigns.reduce((acc, campaign) => {
-    const date = new Date(campaign.metadata?.startDate || Date.now()).toLocaleDateString('pt-BR')
-    const existing = acc.find(d => d.date === date)
-    
-    if (existing) {
-      existing.impressoes += campaign.impressions
-      existing.cliques += campaign.clicks
-      existing.leads += campaign.leads
-    } else {
-      acc.push({
-        date,
-        impressoes: campaign.impressions,
-        cliques: campaign.clicks,
-        leads: campaign.leads
-      })
+  // Mock chart data
+  const chartData = [
+    { date: '01/01', impressoes: 45000, cliques: 1200 },
+    { date: '02/01', impressoes: 52000, cliques: 1400 },
+    { date: '03/01', impressoes: 48000, cliques: 1300 },
+    { date: '04/01', impressoes: 61000, cliques: 1600 },
+    { date: '05/01', impressoes: 58000, cliques: 1500 },
+    { date: '06/01', impressoes: 65000, cliques: 1700 },
+    { date: '07/01', impressoes: 72000, cliques: 1900 }
+  ]
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-900 bg-opacity-95 backdrop-blur-sm p-3 rounded-lg border border-white border-opacity-20 shadow-xl">
+          <p className="text-gray-300 text-sm mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center gap-2 mb-1">
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <p className="text-white text-sm">
+                {entry.name}: {entry.value.toLocaleString('pt-BR')}
+              </p>
+            </div>
+          ))}
+        </div>
+      )
     }
-    
-    return acc
-  }, [] as any[]).slice(-7) // Last 7 data points
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await fetchCampaigns()
+    return null
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-300">Carregando campanhas...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Carregando campanhas...</p>
         </div>
       </div>
     )
@@ -230,24 +239,26 @@ export default function CampaignsPage() {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
       
-      <div className="relative z-10 space-y-6 sm:space-y-8">
+      <div className="relative z-10 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Campanhas</h1>
-            <p className="text-gray-300 mt-1 text-sm sm:text-base">Gerencie e acompanhe o desempenho de suas campanhas</p>
+            <p className="text-gray-300 mt-1 text-sm sm:text-base">Gerencie e acompanhe suas campanhas de marketing</p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all"
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 text-sm sm:text-base"
             >
               <Plus className="h-4 w-4" />
-              Nova Campanha
+              <span className="hidden sm:inline">Nova Campanha</span>
+              <span className="sm:hidden">Nova</span>
             </button>
+            
             <button
-              onClick={handleRefresh}
+              onClick={fetchCampaigns}
               disabled={refreshing}
               className="p-2 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all backdrop-blur-lg border border-white border-opacity-20"
             >
@@ -258,28 +269,17 @@ export default function CampaignsPage() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <select
+          <PlatformFilter
             value={selectedPlatform}
-            onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="px-3 py-2 text-sm sm:text-base bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white [&>option]:text-gray-900"
-          >
-            <option value="all">Todas as Plataformas</option>
-            <option value="google_ads">Google Ads</option>
-            <option value="facebook_ads">Facebook Ads</option>
-            <option value="instagram_ads">Instagram Ads</option>
-            <option value="tiktok_ads">TikTok Ads</option>
-          </select>
+            onChange={setSelectedPlatform}
+            className="w-full sm:w-auto"
+          />
           
-          <select
+          <StatusFilter
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 text-sm sm:text-base bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white [&>option]:text-gray-900"
-          >
-            <option value="all">Todos os Status</option>
-            <option value="active">Ativas</option>
-            <option value="paused">Pausadas</option>
-            <option value="ended">Finalizadas</option>
-          </select>
+            onChange={setSelectedStatus}
+            className="w-full sm:w-auto"
+          />
         </div>
 
         {/* Summary Cards */}
@@ -289,15 +289,15 @@ export default function CampaignsPage() {
             <p className="text-lg sm:text-xl font-bold text-white">{filteredCampaigns.length}</p>
           </div>
           <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-3 sm:p-4 border border-white border-opacity-20">
-            <p className="text-xs sm:text-sm text-gray-300">Orçamento</p>
-            <p className="text-lg sm:text-xl font-bold text-white">R$ {(totals.budget / 1000).toFixed(0)}k</p>
+            <p className="text-xs sm:text-sm text-gray-300">Orçamento Total</p>
+            <p className="text-lg sm:text-xl font-bold text-white">R$ {totals.budget.toLocaleString('pt-BR')}</p>
           </div>
           <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-3 sm:p-4 border border-white border-opacity-20">
-            <p className="text-xs sm:text-sm text-gray-300">Gasto</p>
-            <p className="text-lg sm:text-xl font-bold text-white">R$ {(totals.spent / 1000).toFixed(0)}k</p>
+            <p className="text-xs sm:text-sm text-gray-300">Gasto Total</p>
+            <p className="text-lg sm:text-xl font-bold text-white">R$ {totals.spent.toLocaleString('pt-BR')}</p>
           </div>
           <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-3 sm:p-4 border border-white border-opacity-20">
-            <p className="text-xs sm:text-sm text-gray-300">Leads</p>
+            <p className="text-xs sm:text-sm text-gray-300">Leads Totais</p>
             <p className="text-lg sm:text-xl font-bold text-white">{totals.leads}</p>
           </div>
           <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-3 sm:p-4 border border-white border-opacity-20">
@@ -311,35 +311,28 @@ export default function CampaignsPage() {
         </div>
 
         {/* Performance Chart */}
-        {performanceData.length > 0 && (
+        {filteredCampaigns.length > 0 && (
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
             <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Performance ao Longo do Tempo</h3>
-              <div className="h-64 sm:h-72 lg:h-80">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Performance Geral</h3>
+              <div className="h-48 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={performanceData}>
+                  <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorImpr" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                     <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(30, 41, 59, 0.9)', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '8px'
-                      }}
-                      labelStyle={{ color: '#e2e8f0' }}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                     <Area 
                       type="monotone" 
                       dataKey="impressoes" 
@@ -385,46 +378,26 @@ export default function CampaignsPage() {
                             {campaign.status === 'active' ? 'Ativa' : 
                              campaign.status === 'paused' ? 'Pausada' : 'Finalizada'}
                           </span>
-                          <span>
-                            {new Date(campaign.metadata?.startDate).toLocaleDateString('pt-BR')} - 
-                            {new Date(campaign.metadata?.endDate).toLocaleDateString('pt-BR')}
-                          </span>
+                          <span>•</span>
+                          <span>Orçamento: R$ {campaign.metadata?.budget?.toLocaleString('pt-BR') || '0'}</span>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-300 mb-1">
-                        <span>Orçamento utilizado</span>
-                        <span>{((campaign.spent / (campaign.metadata?.budget || 1)) * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min((campaign.spent / (campaign.metadata?.budget || 1)) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-300 mt-1">
-                        <span>R$ {(campaign.spent / 1000).toFixed(1)}k</span>
-                        <span>R$ {((campaign.metadata?.budget || 0) / 1000).toFixed(1)}k</span>
-                      </div>
-                    </div>
                   </div>
-                  
+
                   {/* Metrics */}
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
-                    <div className="text-center">
-                      <p className="text-xs text-gray-300">Impressões</p>
-                      <p className="text-sm sm:text-base font-semibold text-white">{(campaign.impressions / 1000).toFixed(0)}k</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-gray-300">Gasto</p>
+                      <p className="text-sm sm:text-base font-semibold text-white">R$ {campaign.spent.toLocaleString('pt-BR')}</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-300">Cliques</p>
-                      <p className="text-sm sm:text-base font-semibold text-white">{(campaign.clicks / 1000).toFixed(1)}k</p>
-                    </div>
-                    <div className="text-center">
+                    <div>
                       <p className="text-xs text-gray-300">CTR</p>
                       <p className="text-sm sm:text-base font-semibold text-white">{campaign.ctr}%</p>
+                    </div>
+                    <div className="hidden sm:block">
+                      <p className="text-xs text-gray-300">Cliques</p>
+                      <p className="text-sm sm:text-base font-semibold text-white">{campaign.clicks.toLocaleString('pt-BR')}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-300">Leads</p>
@@ -501,8 +474,8 @@ export default function CampaignsPage() {
 
       {/* Create/Edit Campaign Modal */}
       {(showCreateModal || showEditModal) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md w-full border border-white border-opacity-20">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md w-full border border-white border-opacity-20 my-4">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-white">
                 {showCreateModal ? 'Nova Campanha' : 'Editar Campanha'}
@@ -564,7 +537,7 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Data Início
@@ -573,6 +546,7 @@ export default function CampaignsPage() {
                     value={formData.startDate}
                     onChange={(date) => setFormData({ ...formData, startDate: date })}
                     placeholder="Selecione a data"
+                    className="relative z-[60]"
                   />
                 </div>
 
@@ -584,6 +558,7 @@ export default function CampaignsPage() {
                     value={formData.endDate}
                     onChange={(date) => setFormData({ ...formData, endDate: date })}
                     placeholder="Selecione a data"
+                    className="relative z-[60]"
                   />
                 </div>
               </div>

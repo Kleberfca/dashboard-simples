@@ -1,3 +1,4 @@
+// src/components/ui/DatePicker.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -13,13 +14,16 @@ interface DatePickerProps {
 export default function DatePicker({ value, onChange, placeholder = 'Selecione uma data', className = '' }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const selectedDate = value ? new Date(value) : null
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
@@ -27,6 +31,37 @@ export default function DatePicker({ value, onChange, placeholder = 'Selecione u
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Calcular posição do calendário para evitar overflow
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      const calendarHeight = 380 // altura aproximada do calendário
+      const calendarWidth = 320 // largura do calendário
+      
+      let top = rect.bottom + 8
+      let left = rect.left
+
+      // Verificar se ultrapassa a borda inferior
+      if (top + calendarHeight > window.innerHeight) {
+        top = rect.top - calendarHeight - 8
+      }
+
+      // Verificar se ultrapassa a borda direita
+      if (left + calendarWidth > window.innerWidth) {
+        left = window.innerWidth - calendarWidth - 16
+      }
+
+      // Verificar se ultrapassa a borda esquerda
+      if (left < 16) {
+        left = 16
+      }
+
+      setPosition({ top, left })
+    }
+  }, [isOpen])
+
+  // [... mantém as funções getDaysInMonth, handleDateSelect, handleMonthChange, formatDisplay ...]
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -88,8 +123,9 @@ export default function DatePicker({ value, onChange, placeholder = 'Selecione u
   ]
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full px-4 py-2 bg-white bg-opacity-5 border border-white border-opacity-20 rounded-lg text-white text-left flex items-center justify-between hover:bg-opacity-10 transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none ${className}`}
@@ -101,7 +137,15 @@ export default function DatePicker({ value, onChange, placeholder = 'Selecione u
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-80 bg-gray-900 bg-opacity-95 backdrop-blur-xl rounded-xl shadow-2xl border border-white border-opacity-20 overflow-hidden">
+        <div 
+          ref={dropdownRef}
+          className="fixed z-[70] w-80 bg-gray-900 bg-opacity-95 backdrop-blur-xl rounded-xl shadow-2xl border border-white border-opacity-20 overflow-hidden"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            maxWidth: 'calc(100vw - 32px)'
+          }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-white border-opacity-10">
             <button
@@ -157,29 +201,8 @@ export default function DatePicker({ value, onChange, placeholder = 'Selecione u
               })}
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-white border-opacity-10 flex justify-between">
-            <button
-              onClick={() => {
-                onChange('')
-                setIsOpen(false)
-              }}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              Limpar
-            </button>
-            <button
-              onClick={() => {
-                handleDateSelect(new Date())
-              }}
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Hoje
-            </button>
-          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
