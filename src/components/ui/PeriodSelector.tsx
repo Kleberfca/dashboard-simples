@@ -1,13 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Calendar, ChevronDown, Check, ChevronLeft, ChevronRight } from 'lucide-react'
-
-interface PeriodOption {
-  value: string
-  label: string
-  days?: number
-}
+import { Calendar, ChevronDown, Check, ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 interface PeriodSelectorProps {
   value: string
@@ -15,42 +9,57 @@ interface PeriodSelectorProps {
   showCustom?: boolean
 }
 
-const periodOptions: PeriodOption[] = [
-  { value: 'daily', label: 'Diário' },
-  { value: '7', label: 'Últimos 7 dias', days: 7 },
-  { value: '30', label: 'Últimos 30 dias', days: 30 },
-  { value: '90', label: 'Últimos 90 dias', days: 90 },
-  { value: 'custom', label: 'Personalizado' }
+const periodOptions = [
+  { value: 'daily', label: 'Hoje' },
+  { value: '7', label: 'Últimos 7 dias' },
+  { value: '15', label: 'Últimos 15 dias' },
+  { value: '30', label: 'Últimos 30 dias' },
+  { value: '60', label: 'Últimos 60 dias' },
+  { value: '90', label: 'Últimos 90 dias' }
 ]
 
 export default function PeriodSelector({ value, onChange, showCustom = false }: PeriodSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [customDates, setCustomDates] = useState({ start: '', end: '' })
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [customDates, setCustomDates] = useState<{ start: string; end: string }>({ start: '', end: '' })
   const [selectingDate, setSelectingDate] = useState<'start' | 'end'>('start')
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [isMobile, setIsMobile] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const selectedOption = periodOptions.find(opt => opt.value === value) || periodOptions[2] // Default to 30 days
+  const selectedOption = value === 'custom' 
+    ? { value: 'custom', label: 'Período Personalizado' }
+    : periodOptions.find(opt => opt.value === value) || periodOptions[3]
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
-        setShowDatePicker(false)
+        if (!showDatePicker) {
+          setCustomDates({ start: '', end: '' })
+        }
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [showDatePicker])
 
-  const handleSelect = (option: PeriodOption) => {
-    if (option.value === 'custom') {
+  const handleSelect = (option: { value: string; label: string }) => {
+    if (option.value === 'custom' && showCustom) {
       setShowDatePicker(true)
-      setIsOpen(false)
       setSelectingDate('start')
-      setCustomDates({ start: '', end: '' })
+      setIsOpen(false)
     } else {
       onChange(option.value)
       setIsOpen(false)
@@ -138,6 +147,8 @@ export default function PeriodSelector({ value, onChange, showCustom = false }: 
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
+  const days = getDaysInMonth(currentMonth)
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -166,142 +177,171 @@ export default function PeriodSelector({ value, onChange, showCustom = false }: 
                 )}
               </button>
             ))}
+            {showCustom && (
+              <>
+                <div className="border-t border-white border-opacity-10 my-2"></div>
+                <button
+                  onClick={() => handleSelect({ value: 'custom', label: 'Período Personalizado' })}
+                  className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-white hover:bg-opacity-10 transition-all ${
+                    value === 'custom' ? 'bg-white bg-opacity-5' : ''
+                  }`}
+                >
+                  <span className="text-white text-sm">Período Personalizado</span>
+                  {value === 'custom' && (
+                    <Check className="h-4 w-4 text-blue-400" />
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {showDatePicker && (
         <div 
-          className="fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-0 sm:mt-2 bg-gray-900 bg-opacity-95 sm:bg-opacity-100 backdrop-blur-xl sm:rounded-xl shadow-2xl border border-white border-opacity-20 overflow-hidden"
-          style={{
-            position: window.innerWidth < 640 ? 'fixed' : 'absolute',
-            top: window.innerWidth < 640 ? '50%' : 'auto',
-            left: window.innerWidth < 640 ? '50%' : 'auto',
-            transform: window.innerWidth < 640 ? 'translate(-50%, -50%)' : 'none',
-            width: window.innerWidth < 640 ? '90%' : '384px',
-            maxWidth: window.innerWidth < 640 ? '400px' : '384px',
-            height: window.innerWidth < 640 ? 'auto' : 'auto',
-            maxHeight: window.innerWidth < 640 ? '90vh' : 'none'
-          }}
+          className={`
+            ${isMobile ? 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4' : 
+                        'absolute right-0 mt-2 z-50'}
+          `}
         >
-          <div className="p-4 border-b border-white border-opacity-10">
-            <h4 className="text-white font-semibold text-lg">Período Personalizado</h4>
-          </div>
-          
-          <div className="p-4 overflow-y-auto" style={{ maxHeight: window.innerWidth < 640 ? 'calc(90vh - 160px)' : 'none' }}>
-            {/* Date inputs */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">Data Inicial</label>
+          <div 
+            className={`
+              ${isMobile ? 'w-full max-w-sm' : 'w-96'}
+              bg-gray-900 bg-opacity-95 backdrop-blur-xl rounded-xl shadow-2xl border border-white border-opacity-20 overflow-hidden
+            `}
+          >
+            {/* Header do seletor de período */}
+            <div className="bg-white bg-opacity-5 p-4 border-b border-white border-opacity-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-semibold">Período Personalizado</h3>
                 <button
-                  onClick={() => handleDateInputClick('start')}
-                  className={`w-full bg-white bg-opacity-10 border rounded-lg px-3 py-2 text-white text-sm transition-all ${
-                    selectingDate === 'start' ? 'border-blue-400 bg-opacity-20' : 'border-white border-opacity-20'
-                  }`}
+                  onClick={() => {
+                    setShowDatePicker(false)
+                    setCustomDates({ start: '', end: '' })
+                  }}
+                  className="text-gray-400 hover:text-white transition-colors"
                 >
-                  {formatDate(customDates.start)}
-                </button>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">Data Final</label>
-                <button
-                  onClick={() => handleDateInputClick('end')}
-                  className={`w-full bg-white bg-opacity-10 border rounded-lg px-3 py-2 text-white text-sm transition-all ${
-                    selectingDate === 'end' ? 'border-blue-400 bg-opacity-20' : 'border-white border-opacity-20'
-                  }`}
-                >
-                  {formatDate(customDates.end)}
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white bg-opacity-5 rounded-lg p-3">
-              {/* Month navigation */}
-              <div className="flex items-center justify-between mb-3">
+            {/* Seleção de datas */}
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Data Inicial</label>
+                  <button
+                    onClick={() => handleDateInputClick('start')}
+                    className={`
+                      w-full px-4 py-3 bg-white bg-opacity-5 border rounded-lg text-left
+                      ${selectingDate === 'start' ? 'border-blue-500 bg-opacity-10' : 'border-white border-opacity-20'}
+                      hover:bg-opacity-10 transition-all
+                    `}
+                  >
+                    <span className={customDates.start ? 'text-white' : 'text-gray-400'}>
+                      {customDates.start ? formatDate(customDates.start) : 'Selecione'}
+                    </span>
+                  </button>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Data Final</label>
+                  <button
+                    onClick={() => handleDateInputClick('end')}
+                    className={`
+                      w-full px-4 py-3 bg-white bg-opacity-5 border rounded-lg text-left
+                      ${selectingDate === 'end' ? 'border-blue-500 bg-opacity-10' : 'border-white border-opacity-20'}
+                      hover:bg-opacity-10 transition-all
+                    `}
+                  >
+                    <span className={customDates.end ? 'text-white' : 'text-gray-400'}>
+                      {customDates.end ? formatDate(customDates.end) : 'Selecione'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Calendário */}
+              <div className="bg-white bg-opacity-5 rounded-lg p-4">
+                {/* Header do calendário */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => handleMonthChange('prev')}
+                    className="p-2 hover:bg-white hover:bg-opacity-10 rounded-lg transition-all"
+                  >
+                    <ChevronLeft className="h-5 w-5 text-white" />
+                  </button>
+                  <h4 className="text-white font-semibold capitalize text-center">
+                    {monthNames[currentMonth.getMonth()]} de {currentMonth.getFullYear()}
+                  </h4>
+                  <button
+                    onClick={() => handleMonthChange('next')}
+                    className="p-2 hover:bg-white hover:bg-opacity-10 rounded-lg transition-all"
+                  >
+                    <ChevronRight className="h-5 w-5 text-white" />
+                  </button>
+                </div>
+
+                {/* Dias da semana */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {weekDays.map((day, index) => (
+                    <div key={index} className="text-center text-xs text-gray-400 py-1">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dias do mês */}
+                <div className="grid grid-cols-7 gap-1">
+                  {days.map((day, index) => {
+                    const dateStr = day.date.toISOString().split('T')[0]
+                    const isStartDate = customDates.start === dateStr
+                    const isEndDate = customDates.end === dateStr
+                    const isInRange = customDates.start && customDates.end && 
+                      new Date(dateStr) > new Date(customDates.start) && 
+                      new Date(dateStr) < new Date(customDates.end)
+                    const isToday = day.date.toDateString() === new Date().toDateString()
+
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => day.isCurrentMonth && handleDateSelect(day.date)}
+                        disabled={!day.isCurrentMonth}
+                        className={`
+                          p-2 text-sm rounded-lg transition-all
+                          ${!day.isCurrentMonth ? 'text-gray-600 cursor-not-allowed' : 'text-white hover:bg-white hover:bg-opacity-10'}
+                          ${isStartDate || isEndDate ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
+                          ${isInRange && !isStartDate && !isEndDate ? 'bg-blue-500 bg-opacity-20' : ''}
+                          ${isToday && !isStartDate && !isEndDate ? 'border border-blue-400' : ''}
+                        `}
+                      >
+                        {day.date.getDate()}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex gap-3">
                 <button
-                  onClick={() => handleMonthChange('prev')}
-                  className="p-1.5 hover:bg-white hover:bg-opacity-10 rounded transition-all"
+                  onClick={() => {
+                    setShowDatePicker(false)
+                    setCustomDates({ start: '', end: '' })
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors"
                 >
-                  <ChevronLeft className="h-4 w-4 text-white" />
+                  Cancelar
                 </button>
-                <h5 className="text-white font-medium text-sm capitalize">
-                  {monthNames[currentMonth.getMonth()]} de {currentMonth.getFullYear()}
-                </h5>
                 <button
-                  onClick={() => handleMonthChange('next')}
-                  className="p-1.5 hover:bg-white hover:bg-opacity-10 rounded transition-all"
+                  onClick={handleApplyCustom}
+                  disabled={Boolean(!customDates.start || !customDates.end)}
+                  className="flex-1 px-4 py-2.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  <ChevronRight className="h-4 w-4 text-white" />
+                  Aplicar
                 </button>
               </div>
-
-              {/* Week days */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {weekDays.map((day, index) => (
-                  <div key={index} className="text-center text-xs text-gray-400 py-1">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Days grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {getDaysInMonth(currentMonth).map((day, index) => {
-                  const dateStr = day.date.toISOString().split('T')[0]
-                  const isStartDate = customDates.start === dateStr
-                  const isEndDate = customDates.end === dateStr
-                  const isInRange = 
-                    customDates.start && customDates.end &&
-                    day.date >= new Date(customDates.start) &&
-                    day.date <= new Date(customDates.end)
-                  const isToday = day.date.toDateString() === new Date().toDateString()
-                  const isDisabled = Boolean(
-                    !day.isCurrentMonth ||
-                    (selectingDate === 'end' && customDates.start && day.date < new Date(customDates.start)))
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        if (!isDisabled) {
-                          handleDateSelect(day.date)
-                        }
-                      }}
-                      disabled={isDisabled}
-                      className={`
-                        p-2 text-xs rounded-lg transition-all
-                        ${isDisabled ? 'text-gray-600 cursor-not-allowed' : 'text-white hover:bg-white hover:bg-opacity-10'}
-                        ${isStartDate || isEndDate ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
-                        ${isInRange && !isStartDate && !isEndDate ? 'bg-blue-500 bg-opacity-20' : ''}
-                        ${isToday && !isStartDate && !isEndDate ? 'border border-blue-400' : ''}
-                      `}
-                    >
-                      {day.date.getDate()}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setShowDatePicker(false)
-                  setCustomDates({ start: '', end: '' })
-                }}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleApplyCustom}
-                disabled={Boolean(!customDates.start || !customDates.end)}
-                className="flex-1 px-4 py-2.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                Aplicar
-              </button>
             </div>
           </div>
         </div>

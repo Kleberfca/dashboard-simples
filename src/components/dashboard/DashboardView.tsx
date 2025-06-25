@@ -331,13 +331,13 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                 <div className="h-64 sm:h-72 lg:h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'line' ? (
-                      <LineChart data={chartData}>
+                      <AreaChart data={chartData}>
                         <defs>
-                          <linearGradient id="colorLine1" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorInvest" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
                             <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                           </linearGradient>
-                          <linearGradient id="colorLine2" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
                             <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
                           </linearGradient>
@@ -346,9 +346,25 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                         <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Line type="monotone" dataKey="investimento" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6', r: 4 }} />
-                        <Line type="monotone" dataKey="leads" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: '#8B5CF6', r: 4 }} />
-                      </LineChart>
+                        <Area 
+                          type="monotone" 
+                          dataKey="investimento" 
+                          name="Investimento"
+                          stroke="#3B82F6" 
+                          strokeWidth={2}
+                          fillOpacity={1} 
+                          fill="url(#colorInvest)" 
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="leads" 
+                          name="Leads"
+                          stroke="#8B5CF6" 
+                          strokeWidth={2}
+                          fillOpacity={1} 
+                          fill="url(#colorLeads)" 
+                        />
+                      </AreaChart>
                     ) : (
                       <BarChart data={chartData}>
                         <defs>
@@ -366,7 +382,7 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                         <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                         <Tooltip 
                           content={<CustomTooltip />} 
-                          cursor={{ fill: 'transparent' }} // CORREÇÃO: Remove o fundo transparente no hover
+                          cursor={{ fill: 'transparent' }}
                         />
                         <Bar 
                           dataKey="investimento" 
@@ -408,36 +424,30 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
-                      animationBegin={0}
-                      animationDuration={500}
-                      isAnimationActive={false}
                     >
                       {platformData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={COLORS[index % COLORS.length]}
-                          style={{ outline: 'none', cursor: 'default' }}
-                        />
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      content={<CustomTooltip />}
-                      formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR')}`}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              
+              {/* Legend */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
                 {platformData.map((platform, index) => (
                   <div key={platform.name} className="flex items-center gap-2">
                     <div 
                       className="w-3 h-3 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     />
-                    <span className="text-xs text-gray-300 truncate">{platform.name}</span>
-                    <span className="text-xs text-white ml-auto">
-                      {((platform.value / platformData.reduce((sum, p) => sum + p.value, 0)) * 100).toFixed(0)}%
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-300 truncate">{platform.name}</p>
+                      <p className="text-sm font-semibold text-white">
+                        R$ {platform.value.toLocaleString('pt-BR')}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -446,7 +456,7 @@ export default function DashboardView({ companyId }: DashboardViewProps) {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
             <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">

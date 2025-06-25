@@ -1,33 +1,26 @@
+// src/components/ui/PlatformSelector.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 
-interface Option {
-  value: string
-  label: string
-  icon?: string
-}
-
 interface PlatformSelectorProps {
   value: string
   onChange: (value: string) => void
-  options: Option[]
-  placeholder?: string
-  className?: string
+  disabled?: boolean
+  compact?: boolean
 }
 
-export default function PlatformSelector({ 
-  value, 
-  onChange, 
-  options, 
-  placeholder = 'Selecione...', 
-  className = '' 
-}: PlatformSelectorProps) {
+const platforms = [
+  { value: 'google_ads', label: 'Google Ads', icon: '🔍', color: 'from-blue-500 to-blue-600' },
+  { value: 'facebook_ads', label: 'Facebook Ads', icon: '📘', color: 'from-blue-600 to-indigo-600' },
+  { value: 'instagram_ads', label: 'Instagram Ads', icon: '📷', color: 'from-pink-500 to-purple-600' },
+  { value: 'tiktok_ads', label: 'TikTok Ads', icon: '🎵', color: 'from-gray-800 to-black' }
+]
+
+export default function PlatformSelector({ value, onChange, disabled = false, compact = false }: PlatformSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  const selectedOption = options.find(opt => opt.value === value)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,41 +33,47 @@ export default function PlatformSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const selectedPlatform = platforms.find(p => p.value === value) || platforms[0]
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2 bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-lg text-white text-left flex items-center justify-between hover:bg-opacity-20 transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`
+          w-full px-4 py-2.5 bg-white bg-opacity-10 border border-white border-opacity-20 
+          rounded-lg text-white text-left flex items-center justify-between gap-2 
+          ${!disabled ? 'hover:bg-opacity-20 cursor-pointer' : 'opacity-50 cursor-not-allowed'} 
+          transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none
+        `}
       >
         <span className="flex items-center gap-2">
-          {selectedOption?.icon && <span className="text-xl">{selectedOption.icon}</span>}
-          <span className={selectedOption ? 'text-white' : 'text-gray-400'}>
-            {selectedOption?.label || placeholder}
-          </span>
+          <span className="text-lg">{selectedPlatform.icon}</span>
+          <span className="text-sm">{selectedPlatform.label}</span>
         </span>
-        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        {!disabled && <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-50 mt-2 w-full bg-gray-900 bg-opacity-95 backdrop-blur-xl rounded-xl shadow-2xl border border-white border-opacity-20 overflow-hidden">
           <div className="py-2">
-            {options.map((option) => (
+            {platforms.map((platform) => (
               <button
-                key={option.value}
+                key={platform.value}
                 onClick={() => {
-                  onChange(option.value)
+                  onChange(platform.value)
                   setIsOpen(false)
                 }}
-                className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-white hover:bg-opacity-10 transition-all ${
-                  value === option.value ? 'bg-white bg-opacity-5' : ''
-                }`}
+                className={`
+                  w-full px-4 py-3 text-left flex items-center gap-3 
+                  hover:bg-white hover:bg-opacity-10 transition-all
+                  ${value === platform.value ? 'bg-white bg-opacity-5' : ''}
+                `}
               >
-                <span className="flex items-center gap-3">
-                  {option.icon && <span className="text-xl">{option.icon}</span>}
-                  <span className="text-white">{option.label}</span>
-                </span>
-                {value === option.value && (
+                <span className="text-lg">{platform.icon}</span>
+                <span className="text-white text-sm flex-1">{platform.label}</span>
+                {value === platform.value && (
                   <Check className="h-4 w-4 text-blue-400" />
                 )}
               </button>

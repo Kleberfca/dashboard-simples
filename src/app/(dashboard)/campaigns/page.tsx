@@ -7,6 +7,8 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import DatePicker from '@/components/ui/DatePicker'
 import PlatformFilter from '@/components/ui/PlatformFilter'
 import StatusFilter from '@/components/ui/StatusFilter'
+import ChartTypeSelector from '@/components/ui/ChartTypeSelector'
+import PlatformSelector from '@/components/ui/PlatformSelector'
 
 interface Campaign {
   id: string
@@ -51,6 +53,7 @@ export default function CampaignsPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line')
   const [formData, setFormData] = useState({
     name: '',
     platform: 'google_ads',
@@ -200,6 +203,14 @@ export default function CampaignsPage() {
     { date: '07/01', impressoes: 72000, cliques: 1900 }
   ]
 
+  // Mock data para gráfico de barras
+  const barChartData = [
+    { plataforma: 'Google Ads', investimento: 45000, leads: 120, roas: 4.5 },
+    { plataforma: 'Facebook Ads', investimento: 35000, leads: 85, roas: 3.8 },
+    { plataforma: 'Instagram Ads', investimento: 25000, leads: 65, roas: 3.2 },
+    { plataforma: 'TikTok Ads', investimento: 15000, leads: 40, roas: 2.9 }
+  ]
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -310,50 +321,127 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        {/* Performance Chart */}
+        {/* Performance Charts */}
         {filteredCampaigns.length > 0 && (
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
-            <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Performance Geral</h3>
-              <div className="h-48 sm:h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorImpr" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
-                    <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="impressoes" 
-                      stroke="#3B82F6" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorImpr)" 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="cliques" 
-                      stroke="#8B5CF6" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorClicks)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+          <>
+            {/* Gráfico Principal - Evolução Temporal */}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+              <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-white">Performance Geral</h3>
+                  <ChartTypeSelector value={chartType} onChange={setChartType} />
+                </div>
+                <div className="h-48 sm:h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {chartType === 'line' ? (
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorImpr" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area 
+                          type="monotone" 
+                          dataKey="impressoes" 
+                          stroke="#3B82F6" 
+                          strokeWidth={2}
+                          fillOpacity={1} 
+                          fill="url(#colorImpr)" 
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="cliques" 
+                          stroke="#8B5CF6" 
+                          strokeWidth={2}
+                          fillOpacity={1} 
+                          fill="url(#colorClicks)" 
+                        />
+                      </AreaChart>
+                    ) : (
+                      <BarChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorBar1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                          </linearGradient>
+                          <linearGradient id="colorBar2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.4}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                        <Bar 
+                          dataKey="impressoes" 
+                          fill="url(#colorBar1)" 
+                          name="Impressões"
+                          radius={[8, 8, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="cliques" 
+                          fill="url(#colorBar2)" 
+                          name="Cliques"
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Gráfico de Barras por Plataforma */}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+              <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Comparativo por Plataforma</h3>
+                <div className="h-48 sm:h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barChartData}>
+                      <defs>
+                        <linearGradient id="colorInvest" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                        </linearGradient>
+                        <linearGradient id="colorLeads2" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0.4}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis dataKey="plataforma" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={60} />
+                      <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                      <Bar 
+                        dataKey="investimento" 
+                        fill="url(#colorInvest)" 
+                        name="Investimento (R$)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                      <Bar 
+                        dataKey="leads" 
+                        fill="url(#colorLeads2)" 
+                        name="Leads"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Campaigns List */}
@@ -511,17 +599,12 @@ export default function CampaignsPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Plataforma
                 </label>
-                <select
+                <PlatformSelector
                   value={formData.platform}
-                  onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                  className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 [&>option]:text-gray-900"
+                  onChange={(value) => setFormData({ ...formData, platform: value })}
                   disabled={showEditModal}
-                >
-                  <option value="google_ads">Google Ads</option>
-                  <option value="facebook_ads">Facebook Ads</option>
-                  <option value="instagram_ads">Instagram Ads</option>
-                  <option value="tiktok_ads">TikTok Ads</option>
-                </select>
+                  compact={true}
+                />
               </div>
 
               <div>
