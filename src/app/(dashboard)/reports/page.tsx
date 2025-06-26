@@ -1,18 +1,14 @@
-// src/app/(dashboard)/reports/page.tsx
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, FileSpreadsheet, BarChart3, PieChart, Calendar, Filter, TrendingUp, DollarSign, Users } from 'lucide-react'
-import DatePicker from '@/components/ui/DatePicker'
+import { FileText, BarChart3, PieChart, Download, RefreshCw, Calendar, Settings, Filter } from 'lucide-react'
+import ReportPreview from '@/components/reports/ReportPreview'
 
 type ReportType = 'summary' | 'detailed' | 'comparison'
 type ReportFormat = 'pdf' | 'excel' | 'csv'
 
 interface ReportPreview {
-  type: string
-  company?: any
-  period?: { start: string; end: string }
-  generatedAt?: string
+  type: ReportType
   totals?: {
     impressions: number
     clicks: number
@@ -60,6 +56,7 @@ export default function ReportsPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [generating, setGenerating] = useState(false)
   const [preview, setPreview] = useState<ReportPreview | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const platforms = [
     { id: 'google_ads', name: 'Google Ads', icon: '🔍' },
@@ -92,30 +89,78 @@ export default function ReportsPage() {
     }
   ]
 
-  const handleGenerateReport = async () => {
+  const handleGeneratePreview = async () => {
     setGenerating(true)
     setPreview(null)
 
     try {
-      const params = new URLSearchParams({
+      // Simular API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // Mock data baseado no tipo de relatório
+      const mockPreview: ReportPreview = {
         type: selectedType,
-        format: 'json', // Always get JSON for preview
-        startDate: dateRange.start,
-        endDate: dateRange.end
-      })
-
-      if (selectedPlatforms.length > 0) {
-        params.append('platforms', selectedPlatforms.join(','))
+        totals: {
+          impressions: 387560,
+          clicks: 12450,
+          cost: 54898.5,
+          leads: 186,
+          revenue: 245680
+        },
+        kpis: {
+          ctr: 3.21,
+          cpc: 4.41,
+          cpl: 294.61,
+          roas: 4.48
+        },
+        byPlatform: {
+          google_ads: { cost: 25000, leads: 89, revenue: 120000 },
+          facebook_ads: { cost: 15000, leads: 52, revenue: 78000 },
+          instagram_ads: { cost: 10000, leads: 31, revenue: 35000 },
+          tiktok_ads: { cost: 4898.5, leads: 14, revenue: 12680 }
+        }
       }
 
-      const response = await fetch(`/api/reports?${params}`)
-      const data = await response.json()
-
-      if (data.report) {
-        setPreview(data.report)
+      if (selectedType === 'detailed') {
+        mockPreview.campaigns = [
+          {
+            campaign: { id: '1', name: 'Black Friday 2024', platform: 'Google Ads' },
+            metrics: { impressions: 50000, clicks: 1500, cost: 7500, leads: 45 },
+            dailyData: [],
+            kpis: { roas: '6.2' }
+          },
+          {
+            campaign: { id: '2', name: 'Natal Premium', platform: 'Facebook Ads' },
+            metrics: { impressions: 35000, clicks: 980, cost: 4900, leads: 28 },
+            dailyData: [],
+            kpis: { roas: '4.8' }
+          }
+        ]
       }
+
+      if (selectedType === 'comparison') {
+        mockPreview.periods = {
+          first: {
+            start: '2024-11-01',
+            end: '2024-11-30',
+            metrics: { cost: 30000, leads: 95, revenue: 135000 }
+          },
+          second: {
+            start: '2024-12-01',
+            end: '2024-12-31',
+            metrics: { cost: 24898.5, leads: 91, revenue: 110680 }
+          }
+        }
+        mockPreview.changes = {
+          cost: -17.0,
+          leads: -4.2,
+          revenue: -18.0
+        }
+      }
+
+      setPreview(mockPreview)
     } catch (error) {
-      console.error('Error generating report:', error)
+      console.error('Error generating preview:', error)
     } finally {
       setGenerating(false)
     }
@@ -125,34 +170,11 @@ export default function ReportsPage() {
     setGenerating(true)
 
     try {
-      const params = new URLSearchParams({
-        type: selectedType,
-        format: format === 'excel' ? 'csv' : format,
-        startDate: dateRange.start,
-        endDate: dateRange.end
-      })
-
-      if (selectedPlatforms.length > 0) {
-        params.append('platforms', selectedPlatforms.join(','))
-      }
-
-      const response = await fetch(`/api/reports?${params}`)
+      // Simular download
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      if (format === 'csv' || format === 'excel') {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `relatorio-${selectedType}-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      } else {
-        // For PDF, we'll need to implement PDF generation
-        // For now, we'll just show an alert
-        alert('Geração de PDF será implementada em breve!')
-      }
+      // Aqui seria feita a chamada real para a API
+      console.log(`Downloading ${selectedType} report in ${format} format`)
     } catch (error) {
       console.error('Error downloading report:', error)
     } finally {
@@ -161,310 +183,162 @@ export default function ReportsPage() {
   }
 
   const togglePlatform = (platformId: string) => {
-    setSelectedPlatforms(prev => 
+    setSelectedPlatforms(prev =>
       prev.includes(platformId)
-        ? prev.filter(p => p !== platformId)
+        ? prev.filter(id => id !== platformId)
         : [...prev, platformId]
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 -m-4 sm:-m-6 p-4 sm:p-6">
+      {/* Background pattern */}
       <div className="absolute inset-0 opacity-10" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
-      
-      <div className="relative z-10 space-y-6 sm:space-y-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-6 sm:mb-8">Relatórios</h1>
-        
-        {/* Report Type Selection */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          {reportTypes.map((report) => (
+
+      <div className="relative z-10 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Relatórios</h1>
+            <p className="text-gray-300 mt-1 text-sm sm:text-base">Gere relatórios personalizados das suas campanhas</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
             <button
-              key={report.type}
-              onClick={() => setSelectedType(report.type)}
-              className={`relative group ${selectedType === report.type ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+              className="sm:hidden p-2 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all backdrop-blur-lg border border-white border-opacity-20"
             >
-              <div className={`absolute -inset-0.5 bg-gradient-to-r ${report.color} rounded-lg sm:rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300`}></div>
-              <div className="relative bg-white bg-opacity-5 backdrop-blur rounded-lg sm:rounded-xl p-4 sm:p-6 border border-white border-opacity-10 hover:bg-opacity-10 transition-all">
-                <div className={`text-${report.color.includes('blue') ? 'blue' : report.color.includes('purple') ? 'purple' : 'green'}-400 mx-auto mb-2 sm:mb-3`}>
-                  {report.icon}
-                </div>
-                <h4 className="text-white font-semibold mb-1 sm:mb-2 text-sm sm:text-base">{report.title}</h4>
-                <p className="text-xs sm:text-sm text-gray-300">{report.description}</p>
-              </div>
+              <Filter className="h-5 w-5" />
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
-          <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
-            <div className="flex items-center mb-4">
-              <Filter className="h-5 w-5 text-blue-400 mr-2" />
-              <h3 className="text-lg font-semibold text-white">Filtros do Relatório</h3>
-            </div>
-
-            {/* Date Range */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Data Início
-                </label>
-                <DatePicker 
-                  value={dateRange.start}
-                  onChange={(date) => setDateRange({ ...dateRange, start: date })}
-                  placeholder="Selecione a data inicial"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Data Fim
-                </label>
-                <DatePicker 
-                  value={dateRange.end}
-                  onChange={(date) => setDateRange({ ...dateRange, end: date })}
-                  placeholder="Selecione a data final"
-                />
-              </div>
-            </div>
-
-            {/* Platform Selection */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                Plataformas (deixe vazio para todas)
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {platforms.map((platform) => (
+        {/* Content Grid - Layout responsivo corrigido */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Sidebar - Configurações */}
+          <div className={`lg:col-span-1 space-y-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            
+            {/* Tipo de Relatório */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-4 sm:p-6 border border-white border-opacity-20">
+              <h3 className="text-lg font-semibold text-white mb-4">Tipo de Relatório</h3>
+              <div className="space-y-3">
+                {reportTypes.map((type) => (
                   <button
-                    key={platform.id}
-                    onClick={() => togglePlatform(platform.id)}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                      selectedPlatforms.includes(platform.id)
-                        ? 'bg-blue-500 bg-opacity-20 border-blue-500 text-blue-300'
-                        : 'bg-white bg-opacity-5 border-white border-opacity-20 text-gray-300 hover:bg-opacity-10'
-                    }`}
+                    key={type.type}
+                    onClick={() => setSelectedType(type.type)}
+                    className={`
+                      w-full p-4 rounded-lg border transition-all text-left
+                      ${selectedType === type.type
+                        ? 'border-blue-500 bg-blue-500 bg-opacity-20'
+                        : 'border-white border-opacity-20 hover:border-opacity-40 hover:bg-white hover:bg-opacity-5'
+                      }
+                    `}
                   >
-                    <span className="text-lg">{platform.icon}</span>
-                    <span className="text-sm">{platform.name}</span>
+                    <div className="flex items-start gap-3">
+                      <div className={`
+                        p-2 rounded-lg bg-gradient-to-r ${type.color}
+                        ${selectedType === type.type ? 'opacity-100' : 'opacity-70'}
+                      `}>
+                        <div className="text-white">
+                          {type.icon}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-white text-sm sm:text-base">{type.title}</h4>
+                        <p className="text-xs sm:text-sm text-gray-300 mt-1">{type.description}</p>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerateReport}
-              disabled={generating}
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {generating ? 'Gerando Relatório...' : 'Gerar Relatório'}
-            </button>
-          </div>
-        </div>
-
-        {/* Report Preview */}
-        {preview && (
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
-            <div className="relative bg-white bg-opacity-10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white border-opacity-20">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-white">Prévia do Relatório</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleDownloadReport('pdf')}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 bg-opacity-20 text-red-300 rounded-lg hover:bg-opacity-30 transition-all"
-                  >
-                    <FileText className="h-4 w-4" />
-                    PDF
-                  </button>
-                  <button
-                    onClick={() => handleDownloadReport('excel')}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 bg-opacity-20 text-green-300 rounded-lg hover:bg-opacity-30 transition-all"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={() => handleDownloadReport('csv')}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 bg-opacity-20 text-blue-300 rounded-lg hover:bg-opacity-30 transition-all"
-                  >
-                    <Download className="h-4 w-4" />
-                    CSV
-                  </button>
+            {/* Filtros de Data */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-4 sm:p-6 border border-white border-opacity-20">
+              <h3 className="text-lg font-semibold text-white mb-4">Período</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Data Inicial</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="date"
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="w-full pl-10 pr-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Data Final</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="date"
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      className="w-full pl-10 pr-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* Summary Report Preview */}
-              {preview.type === 'summary' && (
-                <div className="space-y-6">
-                  {/* KPIs */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <DollarSign className="h-5 w-5 text-blue-400" />
-                        <span className="text-xs text-green-400">+{preview.kpis?.roas || 0}x</span>
-                      </div>
-                      <p className="text-xs text-gray-300">Investimento Total</p>
-                      <p className="text-lg font-bold text-white">
-                        R$ {(preview.totals?.cost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <TrendingUp className="h-5 w-5 text-green-400" />
-                        <span className="text-xs text-green-400">{preview.kpis?.ctr || 0}%</span>
-                      </div>
-                      <p className="text-xs text-gray-300">Cliques Totais</p>
-                      <p className="text-lg font-bold text-white">{(preview.totals?.clicks || 0).toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <Users className="h-5 w-5 text-purple-400" />
-                        <span className="text-xs text-purple-400">R$ {preview.kpis?.cpl || 0}</span>
-                      </div>
-                      <p className="text-xs text-gray-300">Leads Gerados</p>
-                      <p className="text-lg font-bold text-white">{(preview.totals?.leads || 0).toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <BarChart3 className="h-5 w-5 text-orange-400" />
-                        <span className="text-xs text-orange-400">{preview.kpis?.conversionRate || 0}%</span>
-                      </div>
-                      <p className="text-xs text-gray-300">Receita Total</p>
-                      <p className="text-lg font-bold text-white">
-                        R$ {(preview.totals?.revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* By Platform */}
-                  {preview.byPlatform && Object.keys(preview.byPlatform).length > 0 && (
-                    <div>
-                      <h4 className="text-white font-semibold mb-3">Performance por Plataforma</h4>
-                      <div className="space-y-2">
-                        {Object.entries(preview.byPlatform).map(([platform, data]: [string, any]) => (
-                          <div key={platform} className="bg-white bg-opacity-5 rounded-lg p-3 flex justify-between items-center">
-                            <span className="text-white">{platform.replace('_', ' ').toUpperCase()}</span>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-300">R$ {data.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              <p className="text-xs text-gray-400">{data.leads} leads</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Detailed Report Preview */}
-              {preview.type === 'detailed' && preview.campaigns && (
-                <div className="space-y-4">
-                  {preview.campaigns.slice(0, 3).map((campaign: any) => (
-                    <div key={campaign.campaign.id} className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h5 className="text-white font-semibold">{campaign.campaign.name}</h5>
-                          <p className="text-xs text-gray-300">{campaign.campaign.platform}</p>
-                        </div>
-                        <span className="text-sm text-green-400">ROAS {campaign.kpis.roas}x</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-2 mt-3 text-xs">
-                        <div>
-                          <p className="text-gray-400">Impressões</p>
-                          <p className="text-white">{campaign.metrics.impressions.toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Cliques</p>
-                          <p className="text-white">{campaign.metrics.clicks.toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Custo</p>
-                          <p className="text-white">R$ {campaign.metrics.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Leads</p>
-                          <p className="text-white">{campaign.metrics.leads}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {preview.campaigns.length > 3 && (
-                    <p className="text-center text-gray-300 text-sm">
-                      + {preview.campaigns.length - 3} campanhas no relatório completo
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Comparison Report Preview */}
-              {preview.type === 'comparison' && preview.periods && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <h5 className="text-white font-semibold mb-3">Primeiro Período</h5>
-                      <p className="text-xs text-gray-300 mb-2">
-                        {new Date(preview.periods.first.start).toLocaleDateString('pt-BR')} - 
-                        {new Date(preview.periods.first.end).toLocaleDateString('pt-BR')}
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-300">Investimento</span>
-                          <span className="text-sm text-white">
-                            R$ {preview.periods.first.metrics.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-300">Leads</span>
-                          <span className="text-sm text-white">{preview.periods.first.metrics.leads}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white bg-opacity-5 rounded-lg p-4">
-                      <h5 className="text-white font-semibold mb-3">Segundo Período</h5>
-                      <p className="text-xs text-gray-300 mb-2">
-                        {new Date(preview.periods.second.start).toLocaleDateString('pt-BR')} - 
-                        {new Date(preview.periods.second.end).toLocaleDateString('pt-BR')}
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-300">Investimento</span>
-                          <span className="text-sm text-white">
-                            R$ {preview.periods.second.metrics.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-300">Leads</span>
-                          <span className="text-sm text-white">{preview.periods.second.metrics.leads}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {preview.changes && (
-                    <div>
-                      <h5 className="text-white font-semibold mb-3">Variações</h5>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        {Object.entries(preview.changes).map(([metric, change]) => (
-                          <div key={metric} className="text-center">
-                            <p className="text-xs text-gray-300 capitalize">{metric}</p>
-                            <p className={`text-lg font-semibold ${
-                              (change as string).startsWith('+') ? 'text-green-400' : 'text-red-400'
-                            }`}>
-                              {change}%
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+
+            {/* Filtros de Plataforma */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-4 sm:p-6 border border-white border-opacity-20">
+              <h3 className="text-lg font-semibold text-white mb-4">Plataformas</h3>
+              <div className="space-y-2">
+                {platforms.map((platform) => (
+                  <label key={platform.id} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPlatforms.includes(platform.id)}
+                      onChange={() => togglePlatform(platform.id)}
+                      className="w-4 h-4 text-blue-600 bg-transparent border-white border-opacity-30 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-lg">{platform.icon}</span>
+                    <span className="text-white text-sm">{platform.name}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-3">
+                Deixe vazio para incluir todas as plataformas
+              </p>
+            </div>
+
+            {/* Botão Gerar Prévia */}
+            <button
+              onClick={handleGeneratePreview}
+              disabled={generating}
+              className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {generating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Gerando...</span>
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Gerar Prévia</span>
+                </>
+              )}
+            </button>
           </div>
-        )}
+
+          {/* Preview - Corrigido para mobile */}
+          <div className="lg:col-span-2">
+            <ReportPreview
+              preview={preview}
+              onDownload={handleDownloadReport}
+              loading={generating}
+              className="h-full"
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
